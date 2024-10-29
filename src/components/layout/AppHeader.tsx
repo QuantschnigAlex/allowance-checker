@@ -3,8 +3,17 @@ import { ConnectWallet } from "../web3/ConnectWallet";
 
 export const AppHeader: React.FC = () => {
   return (
-    <Header title="Allowance Checker ERC20">
-      <ConnectWallet></ConnectWallet>
+    <Header>
+      <div
+        style={{
+          margin: "0 auto",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <ConnectWallet></ConnectWallet>
+      </div>
     </Header>
   );
 };

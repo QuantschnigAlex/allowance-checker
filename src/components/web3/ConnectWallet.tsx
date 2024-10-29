@@ -60,7 +60,6 @@ export const ConnectWallet = () => {
       </Button>
     );
   }
-
   // If connected, show dropdown with address
   return (
     <Dropdown menu={{ items }} trigger={["click"]}>
