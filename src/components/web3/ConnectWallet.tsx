@@ -7,8 +7,11 @@ import {
   CopyOutlined,
 } from "@ant-design/icons";
 import { useWeb3Context } from "../../context/Web3Context";
+import { useMediaQuery } from "react-responsive";
 
 export const ConnectWallet = () => {
+  const isMobile = useMediaQuery({ maxWidth: 600 });
+
   const { account, connect, disconnect, isConnecting } = useWeb3Context();
   const [copied, setCopied] = useState(false);
 
@@ -56,7 +59,7 @@ export const ConnectWallet = () => {
         onClick={connect}
         loading={isConnecting}
       >
-        Connect Wallet
+        {isMobile ? "Connect" : "Connect Wallet"}
       </Button>
     );
   }
