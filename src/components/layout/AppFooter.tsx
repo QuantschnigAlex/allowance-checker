@@ -13,7 +13,7 @@ export const AppFooter: React.FC = () => {
         }}
       >
         <div>© 2024 Allowance Checker</div>
-        <a href="https://www.github.com">
+        <a href="https://github.com/QuantschnigAlex/allowance-checker">
           <GithubOutlined style={{ fontSize: 24 }} />
         </a>
       </div>
