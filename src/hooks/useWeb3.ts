@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useContext } from "react";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
 import { message } from "antd";
+import { Web3Context } from "../context/context";
 
 export function useWeb3() {
   const [account, setAccount] = useState<string | null>(null);
@@ -83,4 +84,12 @@ export function useWeb3() {
     connect,
     disconnect,
   };
+}
+
+export function useWeb3Context() {
+  const context = useContext(Web3Context);
+  if (context === undefined) {
+    throw new Error("useWeb3Context must be used within a Web3Provider");
+  }
+  return context;
 }

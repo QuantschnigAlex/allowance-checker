@@ -1,4 +1,4 @@
-import { BlockTag } from "ethers";
+import { BlockTag, BrowserProvider, JsonRpcSigner } from "ethers";
 
 export interface Window {
   ethereum?: any;
@@ -40,3 +40,12 @@ export const ERC20_ABI = [
   "function decimals() view returns (uint8)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)",
 ];
+export interface Web3ContextData {
+  account: string | null;
+  provider: BrowserProvider | null;
+  signer: JsonRpcSigner | null;
+  chainId: number | null;
+  isConnecting: boolean;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+}

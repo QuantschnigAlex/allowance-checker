@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, Typography, Spin } from "antd";
-import { useWeb3Context } from "../../context/Web3Context";
 import { formatEther } from "ethers";
+import { useWeb3Context } from "../../hooks/useWeb3";
 
 const { Text } = Typography;
 

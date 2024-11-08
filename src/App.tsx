@@ -1,9 +1,10 @@
 import { ConfigProvider, theme } from "antd";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Web3Provider } from "./context/Web3Context";
-import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { darkTheme, lightTheme } from "./theme";
 import { Home } from "./pages/Home";
+import { useTheme } from "./hooks/useTheme";
 
 const AppContent = () => {
   const { theme: currentTheme } = useTheme();

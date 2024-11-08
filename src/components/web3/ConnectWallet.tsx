@@ -6,8 +6,8 @@ import {
   DisconnectOutlined,
   CopyOutlined,
 } from "@ant-design/icons";
-import { useWeb3Context } from "../../context/Web3Context";
 import { useMediaQuery } from "react-responsive";
+import { useWeb3Context } from "../../hooks/useWeb3";
 
 export const ConnectWallet = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
