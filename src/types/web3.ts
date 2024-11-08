@@ -30,7 +30,6 @@ export interface AllowanceInfo {
 }
 
 export interface ScanOptions {
-  years?: number;
   fromBlock?: BlockTag;
   toBlock?: BlockTag;
 }

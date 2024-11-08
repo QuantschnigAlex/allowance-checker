@@ -1,4 +1,6 @@
-export const CHAIN_RPC_PROVIDERS = {
+import { RPCConfig } from "../types/web3";
+
+export const CHAIN_RPC_PROVIDERS: RPCConfig = {
   // Ethereum Mainnet (Chain ID: 1)
   1: [
     "https://eth.llamarpc.com",
