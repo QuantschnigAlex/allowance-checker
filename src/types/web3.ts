@@ -49,3 +49,7 @@ export interface Web3ContextData {
   connect: () => Promise<void>;
   disconnect: () => void;
 }
+
+export type TokenApproval = {
+  [tokenAddress: string]: Set<string>;
+};

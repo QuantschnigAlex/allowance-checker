@@ -16,7 +16,7 @@ describe("AllowanceScanner", () => {
     console.log("current block number", currentBlock);
 
     const options = {
-      fromBlock: currentBlock - 10000,
+      fromBlock: currentBlock - 60000,
       toBlock: currentBlock,
     };
 
@@ -46,5 +46,5 @@ describe("AllowanceScanner", () => {
       expect(allowance.token).toHaveProperty("symbol");
       expect(allowance.token).toHaveProperty("decimals");
     });
-  }, 60000);
+  }, 600000);
 });

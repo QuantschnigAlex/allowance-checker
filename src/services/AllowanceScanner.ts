@@ -1,6 +1,11 @@
 import { Contract, ethers, Interface, Log, Provider } from "ethers";
 import { JsonRpcProvider, BrowserProvider } from "ethers";
-import { AllowanceInfo, ERC20_ABI, ScanOptions } from "../types/web3";
+import {
+  AllowanceInfo,
+  ERC20_ABI,
+  ScanOptions,
+  TokenApproval,
+} from "../types/web3";
 import { CHAIN_RPC_PROVIDERS } from "./rpc";
 
 export class AllowanceScanner {
@@ -41,35 +46,40 @@ export class AllowanceScanner {
     }
   }
 
-  private getNextProvider(): Provider {
+  private getNextProvider() {
     this.currentProviderIndex =
       (this.currentProviderIndex + 1) % this.queryProviders.length;
-    return this.queryProviders[this.currentProviderIndex];
   }
 
   private async queryWithRetry<T>(
-    queryFn: (provider: Provider) => Promise<T>,
-    maxRetries: number = 3
+    queryFn: (provider: Provider) => Promise<T>
   ): Promise<T> {
     let lastError: Error | undefined;
     let attempts = 0;
-    const maxAttempts = maxRetries * this.queryProviders.length;
+    const maxAttempts = this.queryProviders.length;
 
     while (attempts < maxAttempts) {
       try {
-        const provider = this.getNextProvider();
+        const provider = this.queryProviders[this.currentProviderIndex];
         return await queryFn(provider);
       } catch (error) {
-        attempts++;
-        lastError = error as Error;
-
         console.warn(
           `Provider error (attempt ${attempts}/${maxAttempts}):`,
           error instanceof Error ? error.message : "Unknown error",
           `\nSwitching to next provider...`
         );
-
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        try {
+          return await queryFn(this.queryProviders[this.currentProviderIndex]);
+        } catch (error) {
+          attempts++;
+          lastError = error as Error;
+          console.warn(
+            "Failed again with same provider:",
+            error instanceof Error ? error.message : "Unknown error",
+            `\nSwitching to next provider...`
+          );
+          this.getNextProvider();
+        }
       }
     }
     throw new Error(
@@ -95,95 +105,142 @@ export class AllowanceScanner {
 
       const approvalTopic = this.erc20Interface.getEvent("Approval")!.topicHash;
 
-      const tokenApprovals: { [tokenAddress: string]: Set<string> } = {};
+      let tokenApprovals: TokenApproval = {};
 
-      //rpc max is 10k
-      const CHUNK_SIZE = 9900;
-      for (
-        let chunkStart = Number(startBlock);
-        chunkStart < Number(endBlock);
-        chunkStart += CHUNK_SIZE
-      ) {
-        const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, Number(endBlock));
+      //rpc max is 5k
+      const CHUNK_SIZE = 5000;
+      tokenApprovals = await this.getTokenApprovals(
+        startBlock,
+        endBlock,
+        CHUNK_SIZE,
+        approvalTopic,
+        walletAddress
+      );
 
-        console.log(`Scanning blocks ${chunkStart} to ${chunkEnd}...`);
-
-        // Create filter for Approval events
-        const filter = {
-          topics: [approvalTopic, ethers.zeroPadValue(walletAddress, 32), null],
-          fromBlock: chunkStart,
-          toBlock: chunkEnd,
-        };
-
-        // Get logs for this chunk
-        const logs = await this.queryWithRetry<Log[]>((provider) =>
-          provider.getLogs(filter)
-        );
-
-        // Process the logs
-        for (const log of logs) {
-          const tokenAddress = log.address;
-          const spender = ethers.getAddress(
-            ethers.dataSlice(log.topics[2], 12)
-          );
-
-          if (!tokenApprovals[tokenAddress]) {
-            tokenApprovals[tokenAddress] = new Set<string>();
-          }
-          tokenApprovals[tokenAddress].add(spender);
-        }
-      }
-
-      const results: AllowanceInfo[] = [];
-
-      for (const [tokenAddress, spenders] of Object.entries(tokenApprovals)) {
-        try {
-          const provider = this.queryProviders[this.currentProviderIndex];
-          const tokenContract = new Contract(tokenAddress, ERC20_ABI, provider);
-
-          // Get token information
-          const [symbol, decimals] = await Promise.all([
-            tokenContract.symbol().catch(() => "UNKNOWN"),
-            tokenContract.decimals().catch(() => 18),
-          ]);
-
-          // Check allowance for each spender
-          for (const spender of spenders) {
-            try {
-              const allowance = await tokenContract.allowance(
-                walletAddress,
-                spender
-              );
-
-              // Only include non-zero allowances
-              if (allowance > 0n) {
-                results.push({
-                  token: {
-                    address: tokenAddress,
-                    symbol,
-                    decimals,
-                  },
-                  spender,
-                  allowance: allowance.toString(),
-                  formattedAllowance: ethers.formatUnits(allowance, decimals),
-                });
-              }
-            } catch (error) {
-              console.warn(
-                `Error checking allowance for spender ${spender}:`,
-                error
-              );
-            }
-          }
-        } catch (error) {
-          console.warn(`Error processing token ${tokenAddress}:`, error);
-        }
-      }
-
-      return results;
+      return await this.getAllowanceInfo(tokenApprovals, walletAddress);
     } catch (error) {
       console.error("Error scanning allowances:", error);
       throw error;
     }
+  }
+
+  private async getAllowanceInfo(
+    tokenApprovals: TokenApproval,
+    walletAddress: string
+  ): Promise<AllowanceInfo[]> {
+    let allowanceInfos: AllowanceInfo[] = [];
+
+    for (const [tokenAddress, spenders] of Object.entries(tokenApprovals)) {
+      try {
+        // Get token information
+        const [symbol, decimals] = await Promise.all([
+          this.queryWithRetry((provider) =>
+            new Contract(tokenAddress, ERC20_ABI, provider)
+              .symbol()
+              .catch(() => "UNKNOWN")
+          ),
+          this.queryWithRetry((provider) =>
+            new Contract(tokenAddress, ERC20_ABI, provider)
+              .decimals()
+              .catch(() => 18)
+          ),
+        ]);
+
+        // Check allowance for each spender
+        for (const spender of spenders) {
+          try {
+            const allowanceInfo = await this.checkAllowance(
+              tokenAddress,
+              walletAddress,
+              spender,
+              symbol,
+              decimals
+            );
+            if (allowanceInfo != undefined) {
+              allowanceInfos.push(allowanceInfo);
+            }
+          } catch (error) {
+            console.warn(
+              `Error checking allowance for spender ${spender}:`,
+              error
+            );
+          }
+        }
+      } catch (error) {
+        console.warn(`Error processing token ${tokenAddress}:`, error);
+      }
+    }
+    return allowanceInfos;
+  }
+
+  private async checkAllowance(
+    tokenAddress: string,
+    walletAddress: string,
+    spender: string,
+    symbol: any,
+    decimals: any
+  ): Promise<AllowanceInfo | undefined> {
+    const allowance = await this.queryWithRetry((provider) =>
+      new Contract(tokenAddress, ERC20_ABI, provider).allowance(
+        walletAddress,
+        spender
+      )
+    );
+    // Only include non-zero allowances
+    if (allowance > 0n) {
+      return {
+        token: {
+          address: tokenAddress,
+          symbol,
+          decimals,
+        },
+        spender,
+        allowance: allowance.toString(),
+        formattedAllowance: ethers.formatUnits(allowance, decimals),
+      };
+    }
+  }
+
+  private async getTokenApprovals(
+    startBlock: ethers.BlockTag,
+    endBlock: ethers.BlockTag,
+    CHUNK_SIZE: number,
+    approvalTopic: string,
+    walletAddress: string
+  ): Promise<TokenApproval> {
+    const tokenApprovals: TokenApproval = {};
+    for (
+      let chunkStart = Number(startBlock);
+      chunkStart < Number(endBlock);
+      chunkStart += CHUNK_SIZE
+    ) {
+      const chunkEnd = Math.min(chunkStart + CHUNK_SIZE, Number(endBlock));
+
+      console.log(`Scanning blocks ${chunkStart} to ${chunkEnd}...`);
+
+      // Create filter for Approval events
+      const filter = {
+        topics: [approvalTopic, ethers.zeroPadValue(walletAddress, 32), null],
+        fromBlock: chunkStart,
+        toBlock: chunkEnd,
+      };
+
+      // Get logs for this chunk
+      const logs = await this.queryWithRetry<Log[]>((provider) =>
+        provider.getLogs(filter)
+      );
+
+      // Process the logs
+      for (const log of logs) {
+        const tokenAddress = log.address;
+        const spender = ethers.getAddress(ethers.dataSlice(log.topics[2], 12));
+
+        if (!tokenApprovals[tokenAddress]) {
+          tokenApprovals[tokenAddress] = new Set<string>();
+        }
+        tokenApprovals[tokenAddress].add(spender);
+      }
+    }
+    return tokenApprovals;
   }
 }
