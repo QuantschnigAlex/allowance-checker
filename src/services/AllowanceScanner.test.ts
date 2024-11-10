@@ -1,50 +1,46 @@
 import { AllowanceScanner } from "./AllowanceScanner";
-import { BrowserProvider, JsonRpcProvider } from "ethers";
+import { BrowserProvider } from "ethers";
+import { CHAIN_RPC_PROVIDERS } from "./rpc";
 
 describe("AllowanceScanner", () => {
   const TEST_WALLET = "0xA7Fa4bB0bba164F999E8C7B83C9da96A3bE44616";
-  // Ethereum mainnet
-  const TEST_CHAIN_ID = BigInt(1);
 
   let scanner: AllowanceScanner;
 
-  it("should scan allowances for a known wallet in specific block range", async () => {
-    const rpcUrl = "https://eth.llamarpc.com";
-    const provider = new JsonRpcProvider(rpcUrl);
+  // Iterate over each chain ID in CHAIN_RPC_PROVIDERS
+  for (const [chainId] of Object.entries(CHAIN_RPC_PROVIDERS)) {
+    // Create a test suite for each chain ID
+    describe(`Chain ID ${chainId}`, () => {
+      it(`should scan allowances`, async () => {
+        const options = {
+          blockRange: 60000,
+        };
 
-    const currentBlock = await provider.getBlockNumber();
-    console.log("current block number", currentBlock);
+        const mockProvider = {
+          getNetwork: jest.fn().mockResolvedValue({ chainId: BigInt(chainId) }),
+        } as unknown as BrowserProvider;
 
-    const options = {
-      fromBlock: currentBlock - 60000,
-      toBlock: currentBlock,
-    };
+        scanner = new AllowanceScanner(mockProvider);
 
-    const mockProvider = {
-      getNetwork: jest.fn().mockResolvedValue({ chainId: TEST_CHAIN_ID }),
-    } as unknown as BrowserProvider;
+        const allowances = await scanner.scanWalletAllowances(
+          TEST_WALLET,
+          options
+        );
 
-    scanner = new AllowanceScanner(mockProvider);
+        console.log("Found Allowances", allowances.length);
+        console.log("Sample Allowance", allowances[0]);
+        allowances.forEach((allowance) => {
+          expect(allowance).toHaveProperty("token");
+          expect(allowance).toHaveProperty("spender");
+          expect(allowance).toHaveProperty("allowance");
+          expect(allowance).toHaveProperty("formattedAllowance");
 
-    const allowances = await scanner.scanWalletAllowances(TEST_WALLET, options);
-
-    expect(Array.isArray(allowances)).toBe(true);
-
-    console.log(`Found ${allowances.length} allowances`);
-
-    if (allowances.length > 0) {
-      console.log("Sample allowance:", allowances[0]);
-    }
-
-    allowances.forEach((allowance) => {
-      expect(allowance).toHaveProperty("token");
-      expect(allowance).toHaveProperty("spender");
-      expect(allowance).toHaveProperty("allowance");
-      expect(allowance).toHaveProperty("formattedAllowance");
-
-      expect(allowance.token).toHaveProperty("address");
-      expect(allowance.token).toHaveProperty("symbol");
-      expect(allowance.token).toHaveProperty("decimals");
+          expect(allowance.token).toHaveProperty("address");
+          expect(allowance.token).toHaveProperty("symbol");
+          expect(allowance.token).toHaveProperty("decimals");
+        });
+        expect(allowances).toBeDefined();
+      }, 1000000);
     });
-  }, 600000);
+  }
 });

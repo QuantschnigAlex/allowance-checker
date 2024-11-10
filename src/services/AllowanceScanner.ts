@@ -98,7 +98,12 @@ export class AllowanceScanner {
         provider.getBlockNumber()
       );
 
-      const startBlock = options.fromBlock ?? 0;
+      const decideStartPoint =
+        options.blockRange != null
+          ? currentBlock - Number(options.blockRange)
+          : 0;
+
+      const startBlock = options.fromBlock ?? decideStartPoint;
       const endBlock = options.toBlock ?? currentBlock;
 
       console.log(`Scanning all blocks from ${startBlock} to ${endBlock}`);

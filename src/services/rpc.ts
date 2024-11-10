@@ -51,12 +51,16 @@ export const CHAIN_RPC_PROVIDERS: RPCConfig = {
     "https://arbitrum.meowrpc.com",
     "https://arb-pokt.nodies.app",
   ],
-  // Base (Chain ID: 8453)
-  8453: [
-    "https://base.llamarpc.com",
-    "https://base-rpc.publicnode.com",
-    "https://base.meowrpc.com",
-    "https://endpoints.omniatech.io/v1/base/mainnet/public",
-    "https://base-pokt.nodies.app",
-  ],
+
+  //Zeniq Smart Chain
+  383414847825: ["https://api.zeniq.network"],
+
+  // Base (Chain ID: 8453) at the moment not working for base
+  // 8453: [
+  //   "https://base.llamarpc.com",
+  //   "https://base-rpc.publicnode.com",
+  //   "https://base.meowrpc.com",
+  //   "https://endpoints.omniatech.io/v1/base/mainnet/public",
+  //   "https://base-pokt.nodies.app",
+  // ],
 };

@@ -32,6 +32,7 @@ export interface AllowanceInfo {
 export interface ScanOptions {
   fromBlock?: BlockTag;
   toBlock?: BlockTag;
+  blockRange?: BlockTag;
 }
 
 export const ERC20_ABI = [
