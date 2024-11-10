@@ -5,6 +5,7 @@ import {
   ERC20_ABI,
   ScanOptions,
   TokenApproval,
+  TokenInfo,
 } from "../types/web3";
 import { CHAIN_RPC_PROVIDERS } from "./rpc";
 
@@ -133,7 +134,7 @@ export class AllowanceScanner {
     tokenApprovals: TokenApproval,
     walletAddress: string
   ): Promise<AllowanceInfo[]> {
-    let allowanceInfos: AllowanceInfo[] = [];
+    const allowanceInfos: AllowanceInfo[] = [];
 
     for (const [tokenAddress, spenders] of Object.entries(tokenApprovals)) {
       try {
@@ -155,11 +156,13 @@ export class AllowanceScanner {
         for (const spender of spenders) {
           try {
             const allowanceInfo = await this.checkAllowance(
-              tokenAddress,
+              {
+                address: tokenAddress,
+                symbol: symbol,
+                decimals: decimals,
+              },
               walletAddress,
-              spender,
-              symbol,
-              decimals
+              spender
             );
             if (allowanceInfo != undefined) {
               allowanceInfos.push(allowanceInfo);
@@ -179,14 +182,12 @@ export class AllowanceScanner {
   }
 
   private async checkAllowance(
-    tokenAddress: string,
+    tokenInfo: TokenInfo,
     walletAddress: string,
-    spender: string,
-    symbol: any,
-    decimals: any
+    spender: string
   ): Promise<AllowanceInfo | undefined> {
     const allowance = await this.queryWithRetry((provider) =>
-      new Contract(tokenAddress, ERC20_ABI, provider).allowance(
+      new Contract(tokenInfo.address, ERC20_ABI, provider).allowance(
         walletAddress,
         spender
       )
@@ -195,13 +196,13 @@ export class AllowanceScanner {
     if (allowance > 0n) {
       return {
         token: {
-          address: tokenAddress,
-          symbol,
-          decimals,
+          address: tokenInfo.address,
+          symbol: tokenInfo.symbol,
+          decimals: tokenInfo.decimals,
         },
         spender,
         allowance: allowance.toString(),
-        formattedAllowance: ethers.formatUnits(allowance, decimals),
+        formattedAllowance: ethers.formatUnits(allowance, tokenInfo.decimals),
       };
     }
   }
