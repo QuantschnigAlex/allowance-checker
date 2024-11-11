@@ -104,7 +104,6 @@ export const AllowanceList: React.FC = () => {
           account,
           options
         );
-        console.log("Allowances", allowanceList[0].token.symbol);
         setAllowances(allowanceList);
         setLoading(false);
       };
