@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useMediaQuery } from "react-responsive";
 import { useWeb3Context } from "../../hooks/useWeb3";
+import { shortenAddress } from "../utils/utils";
 
 export const ConnectWallet = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
@@ -15,10 +16,7 @@ export const ConnectWallet = () => {
   const { account, connect, disconnect, isConnecting } = useWeb3Context();
   const [copied, setCopied] = useState(false);
 
-  // Helper to shorten the address
-  const shortenAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+
 
   // Copy address to clipboard
   const copyAddress = async () => {

@@ -5,15 +5,24 @@ import {
   ERC20_ABI,
   ScanOptions,
   TokenApproval,
+  TokenApprovalInfo,
   TokenInfo,
 } from "../types/web3";
-import { CHAIN_RPC_PROVIDERS } from "./rpc";
+import { CHAIN_RPC_PROVIDERS, EXPLORE_URLS } from "./rpc";
 
 export class AllowanceScanner {
   private walletProvider: BrowserProvider;
   private queryProviders: JsonRpcProvider[];
   private currentProviderIndex: number;
   private erc20Interface: Interface;
+
+  shortenNumber = (value: string) => {
+    const num = parseFloat(value);
+    if (num > 1000000) {
+      return num.toExponential(2);
+    }
+    return num.toFixed(2);
+  };
 
   constructor(walletProvider: BrowserProvider) {
     this.walletProvider = walletProvider;
@@ -184,25 +193,30 @@ export class AllowanceScanner {
   private async checkAllowance(
     tokenInfo: TokenInfo,
     walletAddress: string,
-    spender: string
+    tokenApprovalInfo: TokenApprovalInfo
   ): Promise<AllowanceInfo | undefined> {
     const allowance = await this.queryWithRetry((provider) =>
       new Contract(tokenInfo.address, ERC20_ABI, provider).allowance(
         walletAddress,
-        spender
+        tokenApprovalInfo.spender
       )
     );
     // Only include non-zero allowances
     if (allowance > 0n) {
+      const formatted = ethers.formatUnits(allowance, tokenInfo.decimals);
+      const explorerLink =
+        EXPLORE_URLS[Number(this.queryProviders[0]._network.chainId)];
       return {
         token: {
           address: tokenInfo.address,
           symbol: tokenInfo.symbol,
           decimals: tokenInfo.decimals,
         },
-        spender,
+        txHash: tokenApprovalInfo.txHash,
+        explorerLink: explorerLink,
+        spender: tokenApprovalInfo.spender,
         allowance: allowance.toString(),
-        formattedAllowance: ethers.formatUnits(allowance, tokenInfo.decimals),
+        formattedAllowance: this.shortenNumber(formatted),
       };
     }
   }
@@ -239,12 +253,16 @@ export class AllowanceScanner {
       // Process the logs
       for (const log of logs) {
         const tokenAddress = log.address;
+        const txHash = log.transactionHash;
         const spender = ethers.getAddress(ethers.dataSlice(log.topics[2], 12));
 
         if (!tokenApprovals[tokenAddress]) {
-          tokenApprovals[tokenAddress] = new Set<string>();
+          tokenApprovals[tokenAddress] = new Set<TokenApprovalInfo>();
         }
-        tokenApprovals[tokenAddress].add(spender);
+        tokenApprovals[tokenAddress].add({
+          spender: spender,
+          txHash: txHash,
+        });
       }
     }
     return tokenApprovals;

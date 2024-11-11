@@ -1,4 +1,4 @@
-import { RPCConfig } from "../types/web3";
+import { EXPLORERConfig, RPCConfig } from "../types/web3";
 
 export const CHAIN_RPC_PROVIDERS: RPCConfig = {
   // Ethereum Mainnet (Chain ID: 1)
@@ -63,4 +63,17 @@ export const CHAIN_RPC_PROVIDERS: RPCConfig = {
   //   "https://endpoints.omniatech.io/v1/base/mainnet/public",
   //   "https://base-pokt.nodies.app",
   // ],
+};
+
+export const EXPLORE_URLS: EXPLORERConfig = {
+  // Ethereum Mainnet (Chain ID: 1)
+  1: "https://etherscan.io",
+  // BSC (Chain ID: 56)
+  56: "https://bscscan.com",
+  // Polygon (Chain ID: 137)
+  137: "https://polygonscan.com",
+  // Arbitrum (Chain ID: 42161)
+  42161: "https://arbiscan.io",
+  //Zeniq Smart Chain
+  383414847825: "https://smart.zeniq.net",
 };

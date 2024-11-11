@@ -16,6 +16,10 @@ export interface RPCConfig {
   [chainId: number]: string[];
 }
 
+export interface EXPLORERConfig {
+  [chainId: number]: string;
+}
+
 export interface TokenInfo {
   address: string;
   symbol: string;
@@ -25,7 +29,9 @@ export interface TokenInfo {
 export interface AllowanceInfo {
   token: TokenInfo;
   spender: string;
+  explorerLink: string;
   allowance: string;
+  txHash: string;
   formattedAllowance: string;
 }
 
@@ -52,5 +58,10 @@ export interface Web3ContextData {
 }
 
 export type TokenApproval = {
-  [tokenAddress: string]: Set<string>;
+  [tokenAddress: string]: Set<TokenApprovalInfo>;
 };
+
+export interface TokenApprovalInfo {
+  spender: string;
+  txHash: string;
+}
