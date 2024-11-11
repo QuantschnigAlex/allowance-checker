@@ -4,12 +4,40 @@ import { AllowanceInfo } from "../../types/web3";
 import { AllowanceScanner } from "../../services/AllowanceScanner";
 import { Button, Space, Spin, Table, TableColumnType } from "antd";
 import { getNetworkImage, shortenAddress } from "../utils/utils";
+import { Contract, JsonRpcSigner } from "ethers";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
   const [loading, setLoading] = useState(false);
   const [allowances, setAllowances] = useState<AllowanceInfo[]>([]);
+  const [revokeLoading, setRevokeLoading] = useState(false);
   const MAX_UINT256 = 2n ** 256n - 1n;
+
+  async function revokeAllowance(
+    allowanceInfo: AllowanceInfo,
+    signer: JsonRpcSigner
+  ) {
+    setRevokeLoading(true);
+    const tokenContract = new Contract(
+      allowanceInfo.token.address,
+      ["function approve(address spender, uint256 amount) returns (bool)"],
+      signer
+    );
+    try {
+      const tx = await tokenContract.approve(allowanceInfo.spender, 0);
+      console.log("Revoke Allowance Tx Hash", tx.hash);
+      await tx.wait();
+      console.log("Revoked Allowance Tx Hash", tx.hash);
+      setAllowances((prev) =>
+        prev.filter(
+          (allowance) => allowance.token.symbol !== allowanceInfo.token.symbol
+        )
+      );
+      setRevokeLoading(false);
+    } catch (error) {
+      console.error("Error revoking allowance", error);
+    }
+  }
 
   useEffect(() => {
     if (account && provider && signer && chainId) {
@@ -79,7 +107,7 @@ export const AllowanceList: React.FC = () => {
       },
     },
     {
-      key: "actions",
+      key: "token",
       dataIndex: "token",
       title: () => (
         <img
@@ -88,9 +116,16 @@ export const AllowanceList: React.FC = () => {
           style={{ width: 30, height: 30, alignItems: "center" }}
         />
       ),
-      render: () => (
+      render: (_, record) => (
         <Space>
-          <Button type="primary" danger>
+          <Button
+            type="primary"
+            danger
+            loading={revokeLoading}
+            onClick={async () => {
+              await revokeAllowance(record, signer!);
+            }}
+          >
             Revoke
           </Button>
         </Space>
