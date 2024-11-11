@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useWeb3Context } from "../../hooks/useWeb3";
 import { AllowanceInfo } from "../../types/web3";
 import { AllowanceScanner } from "../../services/AllowanceScanner";
-import { Button, Space, Spin, Table, TableColumnType } from "antd";
+import { Button, message, Space, Spin, Table, TableColumnType } from "antd";
 import { getNetworkImage, shortenAddress } from "../utils/utils";
 import { Contract, JsonRpcSigner } from "ethers";
 
@@ -18,12 +18,12 @@ export const AllowanceList: React.FC = () => {
     signer: JsonRpcSigner
   ) {
     setRevokeLoading(true);
-    const tokenContract = new Contract(
-      allowanceInfo.token.address,
-      ["function approve(address spender, uint256 amount) returns (bool)"],
-      signer
-    );
     try {
+      const tokenContract = new Contract(
+        allowanceInfo.token.address,
+        ["function approve(address spender, uint256 amount) returns (bool)"],
+        signer
+      );
       const tx = await tokenContract.approve(allowanceInfo.spender, 0);
       console.log("Revoke Allowance Tx Hash", tx.hash);
       await tx.wait();
@@ -34,8 +34,17 @@ export const AllowanceList: React.FC = () => {
         )
       );
       setRevokeLoading(false);
-    } catch (error) {
-      console.error("Error revoking allowance", error);
+    } catch (error: any) {
+      if (error.code === "ACTION_REJECTED") {
+        console.log("Transaction rejected by user");
+        message.info("Transaction rejected");
+      } else {
+        console.error("Error revoking allowance", error);
+        message.error("Failed to revoke allowance");
+      }
+      throw error;
+    } finally {
+      setRevokeLoading(false);
     }
   }
 
