@@ -2,7 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useWeb3Context } from "../../hooks/useWeb3";
 import { AllowanceInfo } from "../../types/web3";
 import { AllowanceScanner } from "../../services/AllowanceScanner";
-import { Button, message, Space, Spin, Table, TableColumnType } from "antd";
+import {
+  Button,
+  notification,
+  Space,
+  Spin,
+  Table,
+  TableColumnType,
+} from "antd";
 import { getNetworkImage, shortenAddress } from "../utils/utils";
 import { Contract, JsonRpcSigner } from "ethers";
 
@@ -10,41 +17,78 @@ export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
   const [loading, setLoading] = useState(false);
   const [allowances, setAllowances] = useState<AllowanceInfo[]>([]);
-  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeLoading, setRevokeLoading] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [api, contextHolder] = notification.useNotification();
   const MAX_UINT256 = 2n ** 256n - 1n;
 
   async function revokeAllowance(
     allowanceInfo: AllowanceInfo,
     signer: JsonRpcSigner
   ) {
-    setRevokeLoading(true);
+    const key = allowanceInfo.txHash;
+    setRevokeLoading((prev) => ({
+      ...prev,
+      [key]: true,
+    }));
     try {
       const tokenContract = new Contract(
         allowanceInfo.token.address,
         ["function approve(address spender, uint256 amount) returns (bool)"],
         signer
       );
+      api.destroy();
       const tx = await tokenContract.approve(allowanceInfo.spender, 0);
+      api.info({
+        message: "Waiting for confirmation",
+        description:
+          "Revoking allowance for the spender! Be patient and wait for the transaction to be confirmed.",
+        duration: 0,
+        icon: <Spin />,
+        key,
+      });
       console.log("Revoke Allowance Tx Hash", tx.hash);
       await tx.wait();
+      api.destroy(key);
+      api.success({
+        message: "Allowance Revoked",
+        duration: 4.5,
+        description:
+          "The allowance has been successfully revoked for the spender!",
+        key: "success",
+      });
       console.log("Revoked Allowance Tx Hash", tx.hash);
       setAllowances((prev) =>
         prev.filter(
           (allowance) => allowance.token.symbol !== allowanceInfo.token.symbol
         )
       );
-      setRevokeLoading(false);
     } catch (error: any) {
       if (error.code === "ACTION_REJECTED") {
         console.log("Transaction rejected by user");
-        message.info("Transaction rejected");
+
+        api.destroy(key);
+        api.error({
+          message: "Transaction rejected",
+          description: "The transaction was rejected by the user!",
+          key: "error-rejected",
+        });
       } else {
         console.error("Error revoking allowance", error);
-        message.error("Failed to revoke allowance");
+        api.error({
+          message: "Error revoking allowance",
+          description:
+            "Something went wrong while revoking the allowance. Please try again.",
+          key: "error-key",
+        });
       }
       throw error;
     } finally {
-      setRevokeLoading(false);
+      setRevokeLoading((prev) => ({
+        ...prev,
+        [key]: false,
+      }));
     }
   }
 
@@ -130,7 +174,7 @@ export const AllowanceList: React.FC = () => {
           <Button
             type="primary"
             danger
-            loading={revokeLoading}
+            loading={revokeLoading[record.txHash] || false}
             onClick={async () => {
               await revokeAllowance(record, signer!);
             }}
@@ -143,18 +187,27 @@ export const AllowanceList: React.FC = () => {
   ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        minHeight: "100%",
-      }}
-    >
-      {loading && <Spin />}
-      {allowances.length === 0 && !loading && <p>No allowances found</p>}
-      {!loading && <Table columns={columns} dataSource={allowances}></Table>}
-    </div>
+    <>
+      {contextHolder}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "column",
+          minHeight: "100%",
+        }}
+      >
+        {loading && <Spin />}
+        {allowances.length === 0 && !loading && <p>No allowances found</p>}
+        {!loading && (
+          <Table
+            columns={columns}
+            dataSource={allowances}
+            rowKey={"txHash"}
+          ></Table>
+        )}
+      </div>
+    </>
   );
 };
