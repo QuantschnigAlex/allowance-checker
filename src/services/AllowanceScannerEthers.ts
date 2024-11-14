@@ -47,10 +47,49 @@ export class AllowanceScannerEthers {
     endBlock: number
   ): Promise<EtherscanTx[]> {
     if (!this.apiKey) throw new Error("API key not found");
+    const txs: EtherscanTx[] = [];
+    let page = 1;
 
+    while (true) {
+      console.info(`Fetching transactions for page ${page}`);
+      try {
+        const result = await this.fetchTransactiosn(
+          startBlock,
+          endBlock,
+          walletAddress,
+          page
+        );
+
+        if (!result || result.length === 0) {
+          break;
+        }
+
+        txs.push(...result);
+
+        if (result.length < 10000) {
+          break;
+        }
+        page++;
+
+        // Rate limit of 5 requests per second
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+        break;
+      }
+    }
+    return txs;
+  }
+
+  private async fetchTransactiosn(
+    startBlock: number,
+    endBlock: number,
+    walletAddress: string,
+    page: number
+  ): Promise<EtherscanTx[]> {
     try {
       const network = await this.walletProvider.getNetwork();
-      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=desc&apikey=${this.apiKey}`;
+      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=10000&sort=desc&apikey=${this.apiKey}`;
 
       const response = await fetch(baseUrl);
       if (!response.ok) throw new Error("Failed to fetch data");
@@ -60,7 +99,7 @@ export class AllowanceScannerEthers {
 
       return data.result;
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching transactions:", error);
       throw error;
     }
   }
