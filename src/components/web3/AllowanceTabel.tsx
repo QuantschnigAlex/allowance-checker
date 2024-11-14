@@ -13,6 +13,7 @@ import {
 import { getNetworkImage, shortenAddress } from "../utils/utils";
 import { Contract, JsonRpcSigner } from "ethers";
 import { AllowanceScannerEthers } from "../../services/AllowanceScannerEthers";
+import { SUPORTED_CHAINS } from "../../services/rpc";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
@@ -188,6 +189,22 @@ export const AllowanceList: React.FC = () => {
     },
   ];
 
+  if (!SUPORTED_CHAINS.includes(chainId!)) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "column",
+          minHeight: "100%",
+        }}
+      >
+        <h1>Unsupported Network</h1>
+      </div>
+    );
+  }
+
   return (
     <>
       {contextHolder}
@@ -200,8 +217,27 @@ export const AllowanceList: React.FC = () => {
           minHeight: "100%",
         }}
       >
-        {loading && <Spin />}
-        {allowances.length === 0 && !loading && <p>No allowances found</p>}
+        {loading && (
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <Spin size="large" />
+          </div>
+        )}
+        {allowances.length === 0 && !loading && (
+          <div
+            style={{
+              padding: "1rem 0",
+            }}
+          >
+            <h1>No allowances found!</h1>
+          </div>
+        )}
         {!loading && (
           <Table
             columns={columns}
