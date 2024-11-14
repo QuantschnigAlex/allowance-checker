@@ -11,6 +11,13 @@ jest.mock("ethers", () => ({
   })),
 }));
 
+// Mock the config
+jest.mock("../config", () => ({
+  config: {
+    apiKey: "test",
+  },
+}));
+
 describe("AllowanceScannerEthers", () => {
   const TEST_WALLET = "0xA7Fa4bB0bba164F999E8C7B83C9da96A3bE44616";
   const TEST_SPENDER = "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
@@ -49,9 +56,6 @@ describe("AllowanceScannerEthers", () => {
 
     scanner = new AllowanceScannerEthers(mockProvider);
     const allowances = await scanner.scanWalletAllowances(TEST_WALLET);
-
-    console.log("Found Allowances", allowances.length);
-    console.log("Allowances", allowances);
 
     expect(allowances).toBeDefined();
     expect(allowances.length).toBeGreaterThan(0);

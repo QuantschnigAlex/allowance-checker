@@ -8,6 +8,7 @@ import {
   TokenInfo,
 } from "../types/web3";
 import { EXPLORE_URLS } from "./rpc";
+import { config } from "../config";
 
 interface EtherscanTx {
   hash: string;
@@ -21,9 +22,11 @@ interface EtherscanTx {
 
 export class AllowanceScannerEthers {
   private walletProvider: BrowserProvider;
+  private apiKey: string;
 
   constructor(walletProvider: BrowserProvider) {
     this.walletProvider = walletProvider;
+    this.apiKey = config.apiKey;
   }
 
   shortenNumber = (value: string) => {
@@ -43,12 +46,11 @@ export class AllowanceScannerEthers {
     startBlock: number,
     endBlock: number
   ): Promise<EtherscanTx[]> {
-    const apiKey = import.meta.env.VITE_ETHERSCAN_API_KEY;
-    if (!apiKey) throw new Error("API key not found");
+    if (!this.apiKey) throw new Error("API key not found");
 
     try {
       const network = await this.walletProvider.getNetwork();
-      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=desc&apikey=${apiKey}`;
+      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=desc&apikey=${this.apiKey}`;
 
       const response = await fetch(baseUrl);
       if (!response.ok) throw new Error("Failed to fetch data");
