@@ -13,9 +13,9 @@ export const getNetworkImage = (chainId: number) => {
       return "/polygon.png";
     case 42161:
       return "/arb.svg";
-    case 383414847825:
-      return "/zeniq.png";
     default:
       return "/eth.png";
   }
 };
+
+export const MAX_UINT256 = 2n ** 256n - 1n;

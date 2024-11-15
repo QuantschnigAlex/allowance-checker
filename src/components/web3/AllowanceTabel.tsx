@@ -1,29 +1,32 @@
 import React, { useEffect, useState } from "react";
 import { useWeb3Context } from "../../hooks/useWeb3";
 import { AllowanceInfo } from "../../types/web3";
-// import { AllowanceScanner } from "../../services/AllowanceScanner";
 import {
   Button,
+  List,
   notification,
   Space,
   Spin,
   Table,
   TableColumnType,
 } from "antd";
-import { getNetworkImage, shortenAddress } from "../utils/utils";
+import { getNetworkImage, MAX_UINT256, shortenAddress } from "../utils/utils";
 import { Contract, JsonRpcSigner } from "ethers";
 import { AllowanceScannerEthers } from "../../services/AllowanceScannerEthers";
 import { SUPORTED_CHAINS } from "../../services/rpc";
+import { useMediaQuery } from "react-responsive";
+import { AllowanceCard } from "./AllowanceCard";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
   const [loading, setLoading] = useState(false);
   const [allowances, setAllowances] = useState<AllowanceInfo[]>([]);
+  const isMobile = useMediaQuery({ maxWidth: 600 });
   const [revokeLoading, setRevokeLoading] = useState<{
     [key: string]: boolean;
   }>({});
   const [api, contextHolder] = notification.useNotification();
-  const MAX_UINT256 = 2n ** 256n - 1n;
+  
 
   async function revokeAllowance(
     allowanceInfo: AllowanceInfo,
@@ -98,14 +101,6 @@ export const AllowanceList: React.FC = () => {
     if (account && provider && signer && chainId) {
       const fetchAllowances = async () => {
         setLoading(true);
-        // const scanner = new AllowanceScanner(provider);
-        // const options = {
-        //   blockRange: 100000,
-        // };
-        // const allowanceList = await scanner.scanWalletAllowances(
-        //   account,
-        //   options
-        // );
         const scanner = new AllowanceScannerEthers(provider);
         const allowanceList = await scanner.scanWalletAllowances(account);
         setAllowances(allowanceList);
@@ -238,12 +233,23 @@ export const AllowanceList: React.FC = () => {
             <h1>No allowances found!</h1>
           </div>
         )}
-        {!loading && (
+        {!loading && !isMobile && (
           <Table
             columns={columns}
             dataSource={allowances}
             rowKey={"txHash"}
           ></Table>
+        )}
+        {!loading && isMobile && (
+          <List
+            style={{ width: "100%" }}
+            dataSource={allowances}
+            renderItem={(allowanceInfo: AllowanceInfo) => (
+              <List.Item>
+                <AllowanceCard allowanceInfo={allowanceInfo} />
+              </List.Item>
+            )}
+          ></List>
         )}
       </div>
     </>
