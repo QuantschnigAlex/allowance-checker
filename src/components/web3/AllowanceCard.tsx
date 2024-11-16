@@ -27,11 +27,20 @@ const ListItem: React.FC<{ title: string; value: ReactNode }> = ({
   </div>
 );
 
-export const AllowanceCard: React.FC<{ allowanceInfo: AllowanceInfo }> = ({
+interface AllowanceCardProps {
+  allowanceInfo: AllowanceInfo;
+  revokeLoading: { [key: string]: boolean };
+  onRevokeAllowance: (allowanceInfo: AllowanceInfo) => Promise<void>;
+}
+
+export const AllowanceCard: React.FC<AllowanceCardProps> = ({
   allowanceInfo,
+  revokeLoading,
+  onRevokeAllowance,
 }) => {
   const { token, spender, txHash, explorerLink, formattedAllowance } =
     allowanceInfo;
+
   return (
     <Card
       style={{ width: "100%" }}
@@ -42,7 +51,12 @@ export const AllowanceCard: React.FC<{ allowanceInfo: AllowanceInfo }> = ({
         >
           View on Explorer
         </Button>,
-        <Button type="primary" danger>
+        <Button
+          type="primary"
+          danger
+          loading={revokeLoading[txHash] || false}
+          onClick={() => onRevokeAllowance(allowanceInfo)}
+        >
           Revoke
         </Button>,
       ]}
