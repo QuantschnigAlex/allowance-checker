@@ -1,5 +1,5 @@
 import { BrowserProvider } from "ethers";
-import { AllowanceScannerEthers } from "./AllowanceScannerEthers";
+import { AllowanceTransactionScanner } from "../services/AllowanceTransactionScanner";
 
 // Mock the Contract
 jest.mock("ethers", () => ({
@@ -21,7 +21,7 @@ jest.mock("../config", () => ({
 describe("AllowanceScannerEthers", () => {
   const TEST_WALLET = "0xA7Fa4bB0bba164F999E8C7B83C9da96A3bE44616";
   const TEST_SPENDER = "0x7a250d5630b4cf539739df2c5dacb4c659f2488d";
-  let scanner: AllowanceScannerEthers;
+  let scanner: AllowanceTransactionScanner;
 
   beforeEach(() => {
     // Mock fetch for Etherscan API
@@ -54,7 +54,7 @@ describe("AllowanceScannerEthers", () => {
       getBlockNumber: jest.fn().mockResolvedValue(BigInt(999999999)),
     } as unknown as BrowserProvider;
 
-    scanner = new AllowanceScannerEthers(mockProvider);
+    scanner = new AllowanceTransactionScanner(mockProvider);
     const allowances = await scanner.scanWalletAllowances(TEST_WALLET);
 
     expect(allowances).toBeDefined();

@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useWeb3Context } from "../../hooks/useWeb3";
 import { AllowanceInfo } from "../../types/web3";
 import { List, notification, Spin } from "antd";
-import { AllowanceScannerEthers } from "../../services/AllowanceScannerEthers";
 import { SUPORTED_CHAINS } from "../../services/rpc";
 import { useMediaQuery } from "react-responsive";
 import { AllowanceCard } from "./AllowanceCard";
 import { AllowanceTable } from "./AllowanceTable";
-import { AllowanceService } from "./allowanceService";
+import { AllowanceService } from "./AllowanceService";
+import { AllowanceLogScanner } from "../../services/AllowanceLogScanner";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
@@ -41,7 +41,7 @@ export const AllowanceList: React.FC = () => {
     if (account && provider && signer && chainId) {
       const fetchAllowances = async () => {
         setLoading(true);
-        const scanner = new AllowanceScannerEthers(provider);
+        const scanner = new AllowanceLogScanner(provider);
         const allowanceList = await scanner.scanWalletAllowances(account);
         setAllowances(allowanceList);
         setLoading(false);

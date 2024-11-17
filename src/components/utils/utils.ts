@@ -19,3 +19,14 @@ export const getNetworkImage = (chainId: number) => {
 };
 
 export const MAX_UINT256 = 2n ** 256n - 1n;
+
+export const APPROVAL_TOPIC =
+  "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925";
+
+export const shortenNumber = (value: string) => {
+  const num = parseFloat(value);
+  if (num > 1000000) {
+    return num.toExponential(2);
+  }
+  return num.toFixed(2);
+};
