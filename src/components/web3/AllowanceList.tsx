@@ -42,9 +42,7 @@ export const AllowanceList: React.FC = () => {
       const fetchAllowances = async () => {
         setLoading(true);
         const scanner = new AllowanceLogScanner(provider);
-        const allowanceList = await scanner.scanWalletAllowances(
-          "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-        );
+        const allowanceList = await scanner.scanWalletAllowances(account);
         setAllowances(allowanceList);
         setLoading(false);
       };

@@ -1,16 +1,15 @@
-import { Contract, BrowserProvider, ethers } from "ethers";
+import { BrowserProvider, ethers } from "ethers";
 import {
   AllowanceInfo,
-  ERC20_ABI,
   EtherscanTx,
   ScanOptions,
   TokenApproval,
   TokenApprovalInfo,
-  TokenInfo,
 } from "../types/web3";
 import { EXPLORE_URLS } from "./rpc";
 import { config } from "../config";
 import { shortenNumber } from "../components/utils/utils";
+import { getCurrentAllowance, getTokenInfo } from "./utils";
 
 export class AllowanceTransactionScanner {
   private walletProvider: BrowserProvider;
@@ -108,38 +107,6 @@ export class AllowanceTransactionScanner {
     }
   }
 
-  private async getTokenInfo(tokenAddress: string): Promise<TokenInfo> {
-    const contract = new Contract(tokenAddress, ERC20_ABI, this.walletProvider);
-    try {
-      const [symbol, decimals] = await Promise.all([
-        contract.symbol().catch(() => "UNKNOWN"),
-        contract.decimals().catch(() => 18),
-      ]);
-
-      return {
-        address: tokenAddress,
-        symbol,
-        decimals,
-      };
-    } catch (error) {
-      console.error(`Error getting token info for ${tokenAddress}:`, error);
-      return {
-        address: tokenAddress,
-        symbol: "UNKNOWN",
-        decimals: 18,
-      };
-    }
-  }
-
-  private async getCurrentAllowance(
-    tokenAddress: string,
-    walletAddress: string,
-    spender: string
-  ): Promise<bigint> {
-    const contract = new Contract(tokenAddress, ERC20_ABI, this.walletProvider);
-    return await contract.allowance(walletAddress, spender);
-  }
-
   public async scanWalletAllowances(
     walletAddress: string,
     options: ScanOptions = {}
@@ -170,14 +137,15 @@ export class AllowanceTransactionScanner {
       // Get allowance info for each token-spender pair
       const allowanceInfos: AllowanceInfo[] = [];
       for (const [tokenAddress, spenders] of Object.entries(tokenApprovals)) {
-        const tokenInfo = await this.getTokenInfo(tokenAddress);
+        const tokenInfo = await getTokenInfo(tokenAddress, this.walletProvider);
 
         for (const spenderInfo of spenders) {
           try {
-            const allowance = await this.getCurrentAllowance(
+            const allowance = await getCurrentAllowance(
               tokenAddress,
               walletAddress,
-              spenderInfo.spender
+              spenderInfo.spender,
+              this.walletProvider
             );
 
             if (allowance > 0n) {

@@ -1,5 +1,5 @@
 import { BrowserProvider } from "ethers";
-import { AllowanceTransactionScanner } from "./AllowanceTransactionScanner";
+import { AllowanceTransactionScanner } from "../services/AllowanceTransactionScanner";
 
 // Mock the Contract
 jest.mock("ethers", () => ({

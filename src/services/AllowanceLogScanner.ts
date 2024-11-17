@@ -1,16 +1,15 @@
-import { BrowserProvider, Contract, ethers } from "ethers";
+import { BrowserProvider, ethers } from "ethers";
 import { config } from "../config";
 import {
   AllowanceInfo,
   ApprovalLog,
-  ERC20_ABI,
   ScanOptions,
   TokenApproval,
   TokenApprovalInfo,
-  TokenInfo,
 } from "../types/web3";
 import { APPROVAL_TOPIC, shortenNumber } from "../components/utils/utils";
 import { EXPLORE_URLS } from "./rpc";
+import { getCurrentAllowance, getTokenInfo } from "./utils";
 
 export class AllowanceLogScanner {
   private walletProvider: BrowserProvider;
@@ -148,14 +147,18 @@ export class AllowanceLogScanner {
       // Get allowance info for each token-spender pair
       const allowanceInfos: AllowanceInfo[] = [];
       for (const [tokenAddress, spenders] of Object.entries(tokenApprovals)) {
-        const tokenInfo = await this.getTokenInfo(tokenAddress);
+        const tokenInfo = await getTokenInfo(tokenAddress, this.walletProvider);
 
         for (const spenderInfo of spenders) {
+          // remove padding
+          spenderInfo.spender = this.trimAddress(spenderInfo.spender);
+
           try {
-            const allowance = await this.getCurrentAllowance(
+            const allowance = await getCurrentAllowance(
               tokenAddress,
               walletAddress,
-              spenderInfo.spender
+              spenderInfo.spender,
+              this.walletProvider
             );
 
             if (allowance > 0n) {
@@ -193,54 +196,5 @@ export class AllowanceLogScanner {
   }
   private trimAddress(paddedAddress: string): string {
     return "0x" + paddedAddress.replace("0x", "").slice(-40).toLowerCase();
-  }
-
-  private async getTokenInfo(tokenAddress: string): Promise<TokenInfo> {
-    const contract = new Contract(tokenAddress, ERC20_ABI, this.walletProvider);
-    try {
-      const [symbol, decimals] = await Promise.all([
-        contract.symbol().catch(() => "UNKNOWN"),
-        contract.decimals().catch(() => 18),
-      ]);
-
-      return {
-        address: tokenAddress,
-        symbol,
-        decimals,
-      };
-    } catch (error) {
-      console.error(`Error getting token info for ${tokenAddress}:`, error);
-      return {
-        address: tokenAddress,
-        symbol: "UNKNOWN",
-        decimals: 18,
-      };
-    }
-  }
-
-  private async getCurrentAllowance(
-    tokenAddress: string,
-    walletAddress: string,
-    spender: string
-  ): Promise<bigint> {
-    const trimedTokenAddress = this.trimAddress(tokenAddress);
-    const trimedWalletAddress = this.trimAddress(walletAddress);
-    const trimedSpender = this.trimAddress(spender);
-
-    try {
-      const contract = new Contract(
-        trimedTokenAddress,
-        ERC20_ABI,
-        this.walletProvider
-      );
-      return await contract.allowance(trimedWalletAddress, trimedSpender);
-    } catch (error) {
-      console.error(
-        `Error getting allowance for ${trimedSpender} and wallet ${trimedWalletAddress}:`,
-        error
-      );
-
-      throw error;
-    }
   }
 }

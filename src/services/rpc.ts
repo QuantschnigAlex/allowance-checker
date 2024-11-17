@@ -52,9 +52,6 @@ export const CHAIN_RPC_PROVIDERS: RPCConfig = {
     "https://arb-pokt.nodies.app",
   ],
 
-  //Zeniq Smart Chain
-  383414847825: ["https://api.zeniq.network"],
-
   // Base (Chain ID: 8453) at the moment not working for base
   // 8453: [
   //   "https://base.llamarpc.com",
@@ -75,7 +72,6 @@ export const EXPLORE_URLS: EXPLORERConfig = {
   // Arbitrum (Chain ID: 42161)
   42161: "https://arbiscan.io",
   //Zeniq Smart Chain
-  383414847825: "https://smart.zeniq.net",
 };
 
 export const SUPORTED_CHAINS = [
