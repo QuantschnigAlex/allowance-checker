@@ -74,6 +74,7 @@ export class AllowanceTransactionScanner {
             return txs;
           }
         }
+        retryCount++;
       }
       page++;
       await new Promise((resolve) => setTimeout(resolve, 200));
