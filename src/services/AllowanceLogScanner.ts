@@ -91,7 +91,6 @@ export class AllowanceLogScanner {
     url.searchParams.append("fromBlock", startBlock.toString());
     url.searchParams.append("toBlock", endBlock.toString());
     url.searchParams.append("topic0", APPROVAL_TOPIC);
-    // url.searchParams.append("topic0_1_opr", "and");
     url.searchParams.append("topic1", paddedAddress);
     url.searchParams.append("page", page.toString());
     url.searchParams.append("offset", "1000");

@@ -89,9 +89,20 @@ export class AllowanceTransactionScanner {
   ): Promise<EtherscanTx[]> {
     try {
       const network = await this.walletProvider.getNetwork();
-      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=2000&sort=desc&apikey=${this.apiKey}`;
+      const url = new URL(
+        `https://api.etherscan.io/v2/api?chainid=${network.chainId}`
+      );
+      url.searchParams.append("module", "account");
+      url.searchParams.append("action", "txlist");
+      url.searchParams.append("address", walletAddress);
+      url.searchParams.append("startblock", String(startBlock));
+      url.searchParams.append("endblock", String(endBlock));
+      url.searchParams.append("page", String(page));
+      url.searchParams.append("offset", "2000");
+      url.searchParams.append("sort", "desc");
+      url.searchParams.append("apikey", this.apiKey);
 
-      const response = await fetch(baseUrl);
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch data");
 
       const data = await response.json();
