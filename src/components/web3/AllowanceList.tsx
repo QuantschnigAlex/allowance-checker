@@ -43,6 +43,7 @@ export const AllowanceList: React.FC = () => {
         setLoading(true);
         const scanner = new AllowanceLogScanner(provider);
         const allowanceList = await scanner.scanWalletAllowances(account);
+        // const allowanceList = allowanceInfos;
         setAllowances(allowanceList);
         setLoading(false);
       };
