@@ -7,7 +7,7 @@ import { SUPORTED_CHAINS } from "../../services/rpc";
 import { useMediaQuery } from "react-responsive";
 import { AllowanceCard } from "./AllowanceCard";
 import { AllowanceTable } from "./AllowanceTable";
-import { AllowanceService } from "./allowanceService";
+import { AllowanceService } from "./AllowanceService";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();

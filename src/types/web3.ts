@@ -65,3 +65,44 @@ export interface TokenApprovalInfo {
   spender: string;
   txHash: string;
 }
+
+export interface EtherscanTx {
+  hash: string;
+  input: string;
+  to: string;
+  timeStamp: string;
+  from: string;
+  blockNumber: string;
+  functionName: string;
+}
+
+export interface EtherscanLogResponse {
+  status: string;
+  message: string;
+  result: EtherscanLog[];
+}
+export interface EtherscanLog {
+  address: string;
+  topics: string[];
+  data: string;
+  blockNumber: string;
+  timeStamp: string;
+  gasPrice: string;
+  gasUsed: string;
+  logIndex: string;
+  transactionHash: string;
+  transactionIndex: string;
+}
+
+export interface ApprovalLog {
+  contractAddress: string;
+  owner: string;
+  spender: string;
+  amount: string;
+  formattedAmount: string;
+  blockNumber: number;
+  timeStamp: number;
+  transactionHash: string;
+  gasPrice: string;
+  gasUsed: string;
+}

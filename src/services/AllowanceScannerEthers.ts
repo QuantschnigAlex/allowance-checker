@@ -2,6 +2,7 @@ import { Contract, BrowserProvider, ethers } from "ethers";
 import {
   AllowanceInfo,
   ERC20_ABI,
+  EtherscanTx,
   ScanOptions,
   TokenApproval,
   TokenApprovalInfo,
@@ -9,16 +10,6 @@ import {
 } from "../types/web3";
 import { EXPLORE_URLS } from "./rpc";
 import { config } from "../config";
-
-interface EtherscanTx {
-  hash: string;
-  input: string;
-  to: string;
-  timeStamp: string;
-  from: string;
-  blockNumber: string;
-  functionName: string;
-}
 
 export class AllowanceScannerEthers {
   private walletProvider: BrowserProvider;
@@ -49,36 +40,52 @@ export class AllowanceScannerEthers {
     if (!this.apiKey) throw new Error("API key not found");
     const txs: EtherscanTx[] = [];
     let page = 1;
+    const MAX_RETRIES = 2;
 
     while (true) {
       console.info(`Fetching transactions for page ${page}`);
-      try {
-        const result = await this.fetchTransactiosn(
-          startBlock,
-          endBlock,
-          walletAddress,
-          page
-        );
 
-        if (!result || result.length === 0) {
-          break;
+      let retryCount = 0;
+      let success = false;
+
+      while (retryCount < MAX_RETRIES && !success) {
+        try {
+          const result = await this.fetchTransactiosn(
+            startBlock,
+            endBlock,
+            walletAddress,
+            page
+          );
+
+          if (!result || result.length === 0) {
+            return txs;
+          }
+
+          txs.push(...result);
+
+          if (result.length < 2000) {
+            return txs;
+          }
+          success = true;
+        } catch (error: any) {
+          if (error.message.includes("rate limit")) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * retryCount)
+            );
+            continue;
+          }
+          if (
+            error.message.includes("window is too large") ||
+            retryCount === MAX_RETRIES
+          ) {
+            console.error("Error fetching transactions:", error);
+            return txs;
+          }
         }
-
-        txs.push(...result);
-
-        if (result.length < 10000) {
-          break;
-        }
-        page++;
-
-        // Rate limit of 5 requests per second
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } catch (error) {
-        console.error("Error fetching transactions:", error);
-        break;
       }
+      page++;
+      await new Promise((resolve) => setTimeout(resolve, 200));
     }
-    return txs;
   }
 
   private async fetchTransactiosn(
@@ -89,14 +96,18 @@ export class AllowanceScannerEthers {
   ): Promise<EtherscanTx[]> {
     try {
       const network = await this.walletProvider.getNetwork();
-      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=10000&sort=desc&apikey=${this.apiKey}`;
+      const baseUrl = `https://api.etherscan.io/v2/api?chainid=${network.chainId}&module=account&action=txlist&address=${walletAddress}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=2000&sort=desc&apikey=${this.apiKey}`;
 
       const response = await fetch(baseUrl);
       if (!response.ok) throw new Error("Failed to fetch data");
 
       const data = await response.json();
-      if (data.status !== "1") throw new Error(data.message);
-
+      if (data.status === "0") {
+        if (data.message === "No transactions found") {
+          return [];
+        }
+        throw new Error(data.message || "Unknown error occurred");
+      }
       return data.result;
     } catch (error) {
       console.error("Error fetching transactions:", error);
