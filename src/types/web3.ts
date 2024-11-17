@@ -95,14 +95,10 @@ export interface EtherscanLog {
 }
 
 export interface ApprovalLog {
-  contractAddress: string;
+  token: string;
   owner: string;
   spender: string;
   amount: string;
-  formattedAmount: string;
   blockNumber: number;
-  timeStamp: number;
-  transactionHash: string;
-  gasPrice: string;
-  gasUsed: string;
+  txHash: string;
 }

@@ -10,8 +10,9 @@ import {
 } from "../types/web3";
 import { EXPLORE_URLS } from "./rpc";
 import { config } from "../config";
+import { shortenNumber } from "../components/utils/utils";
 
-export class AllowanceScannerEthers {
+export class AllowanceTransactionScanner {
   private walletProvider: BrowserProvider;
   private apiKey: string;
 
@@ -19,14 +20,6 @@ export class AllowanceScannerEthers {
     this.walletProvider = walletProvider;
     this.apiKey = config.apiKey;
   }
-
-  shortenNumber = (value: string) => {
-    const num = parseFloat(value);
-    if (num > 1000000) {
-      return num.toExponential(2);
-    }
-    return num.toFixed(2);
-  };
 
   private isApprovalTx(tx: EtherscanTx): boolean {
     return tx.functionName.startsWith("approve(");
@@ -201,7 +194,7 @@ export class AllowanceScannerEthers {
                 txHash: spenderInfo.txHash,
                 explorerLink,
                 allowance: allowance.toString(),
-                formattedAllowance: this.shortenNumber(formatted),
+                formattedAllowance: shortenNumber(formatted),
               });
             }
           } catch (error) {
