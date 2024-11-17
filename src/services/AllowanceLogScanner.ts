@@ -7,9 +7,13 @@ import {
   TokenApproval,
   TokenApprovalInfo,
 } from "../types/web3";
-import { APPROVAL_TOPIC, shortenNumber } from "../components/utils/utils";
 import { EXPLORE_URLS } from "./rpc";
-import { getCurrentAllowance, getTokenInfo } from "./utils";
+import {
+  APPROVAL_TOPIC,
+  getCurrentAllowance,
+  getTokenInfo,
+  shortenNumber,
+} from "./utils";
 
 export class AllowanceLogScanner {
   private walletProvider: BrowserProvider;

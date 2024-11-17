@@ -8,8 +8,7 @@ import {
 } from "../types/web3";
 import { EXPLORE_URLS } from "./rpc";
 import { config } from "../config";
-import { shortenNumber } from "../components/utils/utils";
-import { getCurrentAllowance, getTokenInfo } from "./utils";
+import { getCurrentAllowance, getTokenInfo, shortenNumber } from "./utils";
 
 export class AllowanceTransactionScanner {
   private walletProvider: BrowserProvider;
