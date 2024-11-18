@@ -33,6 +33,7 @@ export interface AllowanceInfo {
   allowance: string;
   txHash: string;
   formattedAllowance: string;
+  spenderName?: string;
 }
 
 export interface ScanOptions {

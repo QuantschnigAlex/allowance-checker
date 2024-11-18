@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useWeb3Context } from "../../hooks/useWeb3";
 import { AllowanceInfo } from "../../types/web3";
-import { List, notification, Spin } from "antd";
+import { Input, List, notification, Spin } from "antd";
 import { SUPORTED_CHAINS } from "../../services/rpc";
 import { useMediaQuery } from "react-responsive";
 import { AllowanceCard } from "./AllowanceCard";
 import { AllowanceTable } from "./AllowanceTable";
 import { AllowanceService } from "./AllowanceService";
 import { AllowanceLogScanner } from "../../services/AllowanceLogScanner";
+// import { allowanceInfos } from "./sampleLogs";
 
 export const AllowanceList: React.FC = () => {
   const { account, provider, signer, chainId } = useWeb3Context();
   const [loading, setLoading] = useState(false);
   const [allowances, setAllowances] = useState<AllowanceInfo[]>([]);
   const isMobile = useMediaQuery({ maxWidth: 600 });
+  const [filteredAllowances, setFilteredAllowances] = useState<AllowanceInfo[]>(
+    []
+  );
   const [revokeLoading, setRevokeLoading] = useState<{
     [key: string]: boolean;
   }>({});
@@ -27,15 +31,22 @@ export const AllowanceList: React.FC = () => {
 
     try {
       await allowanceService.revokeAllowance(allowanceInfo, signer!);
-      setAllowances((prev) =>
-        prev.filter(
-          (allowance) => allowance.token.symbol !== allowanceInfo.token.symbol
-        )
+      const updatedAllowances = allowances.filter(
+        (allowance) => allowance.token.symbol !== allowanceInfo.token.symbol
       );
+      setAllowances(updatedAllowances);
+      setFilteredAllowances(updatedAllowances);
     } finally {
       setRevokeLoading((prev) => ({ ...prev, [key]: false }));
     }
   };
+
+  function filterAllowancesByName(allowances: AllowanceInfo[], name: string) {
+    const allowancesByName = allowances.filter((allowance) =>
+      allowance.token.symbol.toLowerCase().includes(name.toLowerCase())
+    );
+    setFilteredAllowances(allowancesByName);
+  }
 
   useEffect(() => {
     if (account && provider && signer && chainId) {
@@ -45,6 +56,7 @@ export const AllowanceList: React.FC = () => {
         const allowanceList = await scanner.scanWalletAllowances(account);
         // const allowanceList = allowanceInfos;
         setAllowances(allowanceList);
+        setFilteredAllowances(allowanceList);
         setLoading(false);
       };
       fetchAllowances();
@@ -103,27 +115,49 @@ export const AllowanceList: React.FC = () => {
           </div>
         )}
         {!loading && !isMobile && (
-          <AllowanceTable
-            allowances={allowances}
-            chainId={chainId!}
-            revokeLoading={revokeLoading}
-            onRevokeAllowance={handleRevokeAllowance}
-          />
+          <div>
+            <Input.Search
+              style={{ marginBottom: "1rem" }}
+              placeholder="Search by token name"
+              allowClear
+              enterButton="Search"
+              size="large"
+              onClear={() => setFilteredAllowances(allowances)}
+              onSearch={(value) => filterAllowancesByName(allowances, value)}
+            />
+            <AllowanceTable
+              allowances={filteredAllowances}
+              chainId={chainId!}
+              revokeLoading={revokeLoading}
+              onRevokeAllowance={handleRevokeAllowance}
+            />
+          </div>
         )}
         {!loading && isMobile && (
-          <List
-            style={{ width: "100%" }}
-            dataSource={allowances}
-            renderItem={(allowanceInfo: AllowanceInfo) => (
-              <List.Item>
-                <AllowanceCard
-                  allowanceInfo={allowanceInfo}
-                  onRevokeAllowance={handleRevokeAllowance}
-                  revokeLoading={revokeLoading}
-                />
-              </List.Item>
-            )}
-          ></List>
+          <div style={{ width: "100%" }}>
+            <Input.Search
+              style={{ marginBottom: "1rem" }}
+              placeholder="input search text"
+              allowClear
+              enterButton="Search"
+              size="large"
+              onClear={() => setFilteredAllowances(allowances)}
+              onSearch={(value) => filterAllowancesByName(allowances, value)}
+            />
+            <List
+              style={{ width: "100%" }}
+              dataSource={filteredAllowances}
+              renderItem={(allowanceInfo: AllowanceInfo) => (
+                <List.Item>
+                  <AllowanceCard
+                    allowanceInfo={allowanceInfo}
+                    onRevokeAllowance={handleRevokeAllowance}
+                    revokeLoading={revokeLoading}
+                  />
+                </List.Item>
+              )}
+            ></List>
+          </div>
         )}
       </div>
     </>

@@ -47,7 +47,7 @@ export const AllowanceTable: React.FC<AllowanceTableProps> = ({
           target="_blank"
           rel="noopener noreferrer"
         >
-          {shortenAddress(spender)}
+          {record.spenderName || shortenAddress(spender)}
         </a>
       ),
     },

@@ -10,6 +10,7 @@ import {
 import { EXPLORE_URLS } from "./rpc";
 import {
   APPROVAL_TOPIC,
+  getContractSourceCode,
   getCurrentAllowance,
   getTokenInfo,
   shortenNumber,
@@ -157,6 +158,14 @@ export class AllowanceLogScanner {
           spenderInfo.spender = this.trimAddress(spenderInfo.spender);
 
           try {
+            const chainID = (await this.walletProvider.getNetwork()).chainId;
+            const contractSourceCode = await getContractSourceCode(
+              spenderInfo.spender,
+              Number(chainID)
+            );
+
+            const spenderName = contractSourceCode?.ContractName;
+
             const allowance = await getCurrentAllowance(
               tokenAddress,
               walletAddress,
@@ -179,6 +188,7 @@ export class AllowanceLogScanner {
                 explorerLink,
                 allowance: allowance.toString(),
                 formattedAllowance: shortenNumber(formatted),
+                spenderName: spenderName,
               });
             }
           } catch (error) {

@@ -1,5 +1,7 @@
 import { BrowserProvider, Contract } from "ethers";
 import { ERC20_ABI, TokenInfo } from "../types/web3";
+import { config } from "../config";
+import { ContractSourceCache } from "./ContractSourceCache";
 
 export async function getTokenInfo(
   tokenAddress: string,
@@ -56,3 +58,48 @@ export const shortenNumber = (value: string) => {
   }
   return num.toFixed(2);
 };
+export interface EtherscanContractSource {
+  ContractName: string;
+}
+
+export async function getContractSourceCode(
+  contractAddress: string,
+  chainid: number
+): Promise<EtherscanContractSource | null> {
+  const cache = ContractSourceCache.getInstance();
+
+  const cached = cache.get(contractAddress, chainid);
+  if (cached) {
+    console.log("Cache hit for:", contractAddress);
+    return cached;
+  }
+
+  try {
+    console.log("Fetching contract source for:", contractAddress);
+    const apiKey = config.apiKey;
+    const url = new URL(`https://api.etherscan.io/v2/api?chainid=${chainid}`);
+    url.searchParams.append("module", "contract");
+    url.searchParams.append("action", "getsourcecode");
+    url.searchParams.append("address", contractAddress);
+    url.searchParams.append("apikey", apiKey);
+
+    const response = await fetch(url.toString());
+    const data = await response.json();
+
+    if (data.status === "0" || !data.result?.[0]) {
+      console.warn(
+        `No contract source found for ${contractAddress}:`,
+        data.message
+      );
+      return null;
+    }
+    cache.set(contractAddress, chainid, data.result[0]);
+    return data.result[0];
+  } catch (error) {
+    console.error(
+      `Error fetching contract source for ${contractAddress}:`,
+      error
+    );
+    return null;
+  }
+}
