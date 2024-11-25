@@ -3,7 +3,7 @@ import { EtherscanContractSource } from "./utils";
 export class ContractSourceCache {
   private static instance: ContractSourceCache;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
-  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000;
+  private readonly CACHE_DURATION = 24 * 60 * 60 * 1000;  // 24 hours
 
   private constructor() {
     this.cache = new Map();

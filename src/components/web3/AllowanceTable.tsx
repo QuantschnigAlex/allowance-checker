@@ -85,6 +85,5 @@ export const AllowanceTable: React.FC<AllowanceTableProps> = ({
       ),
     },
   ];
-
   return <Table columns={columns} dataSource={allowances} rowKey="txHash" />;
 };

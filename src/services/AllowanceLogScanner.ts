@@ -159,12 +159,6 @@ export class AllowanceLogScanner {
 
           try {
             const chainID = (await this.walletProvider.getNetwork()).chainId;
-            const contractSourceCode = await getContractSourceCode(
-              spenderInfo.spender,
-              Number(chainID)
-            );
-
-            const spenderName = contractSourceCode?.ContractName;
 
             const allowance = await getCurrentAllowance(
               tokenAddress,
@@ -174,6 +168,11 @@ export class AllowanceLogScanner {
             );
 
             if (allowance > 0n) {
+              const contractSourceCode = await getContractSourceCode(
+                spenderInfo.spender,
+                Number(chainID)
+              );
+              const spenderName = contractSourceCode?.ContractName;
               const formatted = ethers.formatUnits(
                 allowance,
                 tokenInfo.decimals

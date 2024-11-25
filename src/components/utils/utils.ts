@@ -13,6 +13,16 @@ export const getNetworkImage = (chainId: number) => {
       return "/polygon.png";
     case 42161:
       return "/arb.svg";
+    case 43114:
+      return "avax.png";
+    case 8453:
+      return "base.png";
+    case 1284:
+      return "moonbeam.png";
+    case 10:
+      return "optimism.png";
+    case 324:
+      return "zksync.png";
     default:
       return "/eth.png";
   }

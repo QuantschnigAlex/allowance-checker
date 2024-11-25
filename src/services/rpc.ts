@@ -51,15 +51,6 @@ export const CHAIN_RPC_PROVIDERS: RPCConfig = {
     "https://arbitrum.meowrpc.com",
     "https://arb-pokt.nodies.app",
   ],
-
-  // Base (Chain ID: 8453) at the moment not working for base
-  // 8453: [
-  //   "https://base.llamarpc.com",
-  //   "https://base-rpc.publicnode.com",
-  //   "https://base.meowrpc.com",
-  //   "https://endpoints.omniatech.io/v1/base/mainnet/public",
-  //   "https://base-pokt.nodies.app",
-  // ],
 };
 
 export const EXPLORE_URLS: EXPLORERConfig = {
@@ -71,7 +62,6 @@ export const EXPLORE_URLS: EXPLORERConfig = {
   137: "https://polygonscan.com",
   // Arbitrum (Chain ID: 42161)
   42161: "https://arbiscan.io",
-  //Zeniq Smart Chain
 };
 
 export const SUPORTED_CHAINS = [
