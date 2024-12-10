@@ -8,6 +8,7 @@ import { AllowanceCard } from "./AllowanceCard";
 import { AllowanceTable } from "./AllowanceTable";
 import { AllowanceService } from "./AllowanceService";
 import { AllowanceLogScanner } from "../../services/AllowanceLogScanner";
+import { allowanceInfos } from "./sampleLogs";
 // import { allowanceInfos } from "./sampleLogs";
 
 export const AllowanceList: React.FC = () => {
@@ -52,8 +53,11 @@ export const AllowanceList: React.FC = () => {
     if (account && provider && signer && chainId) {
       const fetchAllowances = async () => {
         setLoading(true);
+        console.log("Fetching allowances...", account);
+        console.log("chainId", chainId);
         const scanner = new AllowanceLogScanner(provider);
         const allowanceList = await scanner.scanWalletAllowances(account);
+        console.log("allowanceList", allowanceList.length);
         // const allowanceList = allowanceInfos;
         setAllowances(allowanceList);
         setFilteredAllowances(allowanceList);

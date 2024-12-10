@@ -54,9 +54,12 @@ export interface Web3ContextData {
   signer: JsonRpcSigner | null;
   chainId: number | null;
   isConnecting: boolean;
-  connect: () => Promise<void>;
+  activeWallet: WalletType | null;
+  connect: (walletType: WalletType) => Promise<void>;
   disconnect: () => void;
 }
+
+export type WalletType = 'metamask' | 'rabby';
 
 export type TokenApproval = {
   [tokenAddress: string]: Set<TokenApprovalInfo>;
