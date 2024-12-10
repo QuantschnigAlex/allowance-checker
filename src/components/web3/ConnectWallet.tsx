@@ -21,21 +21,24 @@ const WALLET_ICONS = {
 export const ConnectWallet = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
   const { account, connect, disconnect, isConnecting, activeWallet } = useWeb3Context();
-  const [copied, setCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const copyAddress = async () => {
     if (account) {
       await navigator.clipboard.writeText(account);
-      setCopied(true);
-      console.log("Copy address to clipboard:", copied);
       message.success("Address copied to clipboard!");
-      setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const handleWalletConnect = async (walletType: WalletType) => {
     try {
+      // If another wallet is active, disconnect first
+      if (activeWallet && activeWallet !== walletType) {
+        disconnect();
+        // ensure clean state
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       await connect(walletType);
       setIsModalOpen(false);
     } catch (error) {
@@ -65,22 +68,18 @@ export const ConnectWallet = () => {
     name,
     type,
     icon,
-    disabled
   }: {
     name: string;
     type: WalletType;
     icon: string;
-    disabled?: boolean;
   }) => (
     <Card
-      hoverable={!disabled}
+      hoverable
       style={{
         marginBottom: 16,
         borderRadius: 8,
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer'
       }}
-      onClick={() => !disabled && handleWalletConnect(type)}
+      onClick={() => handleWalletConnect(type)}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text strong>{name}</Text>
@@ -90,11 +89,6 @@ export const ConnectWallet = () => {
           style={{ height: 32, width: 32 }}
         />
       </div>
-      {disabled && (
-        <Text type="secondary" style={{ fontSize: '12px' }}>
-          Currently connected
-        </Text>
-      )}
     </Card>
   );
 
@@ -115,7 +109,7 @@ export const ConnectWallet = () => {
           open={isModalOpen}
           onCancel={() => setIsModalOpen(false)}
           footer={null}
-          width={400}
+          width={350}
         >
           <div style={{ padding: '16px 0' }}>
             <WalletOption
@@ -141,9 +135,11 @@ export const ConnectWallet = () => {
           <WalletOutlined />
           {shortenAddress(account)}
           {activeWallet && (
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              ({activeWallet === 'metamask' ? 'MetaMask' : 'Rabby'})
-            </Text>
+            <img
+              src={WALLET_ICONS[activeWallet]}
+              alt={activeWallet}
+              style={{ height: 16, width: 16, marginLeft: 8 }}
+            />
           )}
         </Space>
       </Button>
