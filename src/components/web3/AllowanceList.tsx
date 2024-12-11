@@ -8,7 +8,6 @@ import { AllowanceCard } from "./AllowanceCard";
 import { AllowanceTable } from "./AllowanceTable";
 import { AllowanceService } from "./AllowanceService";
 import { AllowanceLogScanner } from "../../services/AllowanceLogScanner";
-import { allowanceInfos } from "./sampleLogs";
 // import { allowanceInfos } from "./sampleLogs";
 
 export const AllowanceList: React.FC = () => {

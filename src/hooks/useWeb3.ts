@@ -1,191 +1,109 @@
-import { useState, useCallback, useEffect, useContext } from "react";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { message } from "antd";
-import { Web3Context } from "../context/context";
-import { EIP6963ProviderDetail, WalletType } from "../types/web3";
+import { useContext, useEffect, useState, useSyncExternalStore } from "react"
+import { Web3Context } from "../context/context"
+import { BrowserProvider, JsonRpcSigner } from "ethers"
+import { EIP6963AnnounceProviderEvent, EIP6963ProviderDetail } from "../types/web3"
+
+declare global {
+  interface WindowEventMap {
+    "eip6963:announceProvider": CustomEvent
+  }
+}
+
+let providers: EIP6963ProviderDetail[] = []
+export const store = {
+  value: () => providers,
+  subscribe: (callback: () => void) => {
+    function onAnnouncement(event: EIP6963AnnounceProviderEvent) {
+      if (providers.map(p => p.info.uuid).includes(event.detail.info.uuid)) return
+      providers = [...providers, event.detail]
+      callback()
+    }
+    window.addEventListener("eip6963:announceProvider", onAnnouncement);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    return () => window.removeEventListener("eip6963:announceProvider", onAnnouncement)
+  }
+}
+
+export const useSyncProviders = () => useSyncExternalStore(store.subscribe, store.value, store.value)
 
 export function useWeb3() {
-  const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<EIP6963ProviderDetail | null>(null)
   const [chainId, setChainId] = useState<number | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [activeWallet, setActiveWallet] = useState<WalletType | null>(null);
-  const [walletProviders, setWalletProviders] = useState<Map<string, EIP6963ProviderDetail>>(new Map());
+  const [account, setAccount] = useState<string | null>(null);
 
   useEffect(() => {
-    const providers = new Map<string, EIP6963ProviderDetail>();
+    if (selectedWallet?.provider) {
+      let mounted = true;
 
-    const handleAnnouncement = (event: any) => {
-      const { detail } = event;
-      providers.set(detail.info.rdns, detail);
-      setWalletProviders(new Map(providers));
-    };
-
-    window.addEventListener('eip6963:announceProvider', handleAnnouncement);
-    window.dispatchEvent(new Event('eip6963:requestProvider'));
-
-    return () => {
-      window.removeEventListener('eip6963:announceProvider', handleAnnouncement);
-    };
-  }, []);
-
-  const getWalletProvider = (walletType: WalletType) => {
-    const rdns = walletType === 'metamask' ? 'io.metamask' : 'io.rabby';
-    return walletProviders.get(rdns)?.provider;
-  };
-
-  const connect = useCallback(async (walletType: WalletType) => {
-    try {
-      setIsConnecting(true);
-
-      const walletProvider = getWalletProvider(walletType);
-
-      if (!walletProvider) {
-        throw new Error(`${walletType} wallet not found! Please make sure it's installed.`);
-      }
-
-      const browserProvider = new BrowserProvider(walletProvider, "any");
-      const accounts = await walletProvider.request({
-        method: "eth_requestAccounts",
-      });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("No accounts found");
-      }
-
-      const signer = await browserProvider.getSigner();
-      const network = await browserProvider.getNetwork();
-
-      setProvider(browserProvider);
-      setSigner(signer);
-      setAccount(accounts[0]);
-      setChainId(Number(network.chainId));
-      setActiveWallet(walletType);
-
-      message.success(`Connected to ${walletType === 'metamask' ? 'MetaMask' : 'Rabby'}`);
-    } catch (error: any) {
-      console.error("Connect error:", error);
-      if (error.error?.code === -32002) {
-        message.info("Please check your wallet and complete the pending connection.");
-      } else {
-        message.error(error.message || "Failed to connect wallet");
-      }
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [walletProviders]);
-
-  const disconnect = useCallback(() => {
-    setAccount(null);
-    setProvider(null);
-    setSigner(null);
-    setChainId(null);
-    setActiveWallet(null);
-    message.success("Wallet disconnected");
-  }, []);
-
-  useEffect(() => {
-    if (!provider?.provider || !activeWallet) return;
-
-    const rawProvider = provider.provider;
-
-    async function handleAccountsChanged(accounts: string[]) {
-      if (accounts.length === 0) {
-        disconnect();
-      } else if (accounts[0] !== account) {
-        setAccount(accounts[0]);
+      const checkNetwork = async () => {
         try {
-          const newSigner = await provider!.getSigner();
-          setSigner(newSigner);
+          const chainIdHex = await selectedWallet.provider.request({
+            method: 'eth_chainId'
+          }) as string;
+
+          if (mounted && Number(chainIdHex) !== chainId) {
+            const provider = new BrowserProvider(selectedWallet.provider);
+            const signer = await provider.getSigner();
+
+            setProvider(provider);
+            setChainId(Number(chainIdHex));
+            setSigner(signer);
+          }
         } catch (error) {
-          console.error('Error updating signer:', error);
+          console.error('Error checking network:', error);
         }
-      }
+      };
+
+      // Check every second
+      const interval = setInterval(checkNetwork, 1000);
+
+      return () => {
+        mounted = false;
+        clearInterval(interval);
+      };
     }
+  }, [selectedWallet, chainId]);
 
-    async function handleChainChanged(newChainId: string) {
-      console.log('Chain changed to:', newChainId);
+  const connect = async (providerDetail: EIP6963ProviderDetail) => {
+    try {
+      const accounts = await providerDetail.provider
+        .request({ method: 'eth_requestAccounts' })
+        .catch(console.error)
 
-      try {
-        // Get updated provider and network information
-        const network = await provider!.getNetwork();
-        const newSigner = await provider!.getSigner();
+      if (accounts?.[0]) {
+        const provider = new BrowserProvider(providerDetail.provider);
+        const network = await provider.getNetwork();
+        const signer = await provider.getSigner();
 
-        // Update state with new chain info
+        setSelectedWallet(providerDetail);
+        setAccount(accounts[0]);
+        setProvider(provider);
         setChainId(Number(network.chainId));
-        setSigner(newSigner);
-      } catch (error) {
-        console.error('Error handling chain change:', error);
-        message.error('Error updating network connection');
+        setSigner(signer);
       }
-    }
-
-    function handleDisconnect() {
-      console.log('Wallet disconnected');
+    } catch (error) {
+      console.error('Connection error:', error);
       disconnect();
     }
+  };
 
-    try {
-      // Set up event listeners
-      rawProvider.on('accountsChanged', handleAccountsChanged);
-      rawProvider.on('chainChanged', handleChainChanged);
-      rawProvider.on('disconnect', handleDisconnect);
-
-      // Get initial chain ID
-      provider.getNetwork().then(network => {
-        setChainId(Number(network.chainId));
-      }).catch(console.error);
-
-    } catch (error) {
-      console.warn('Error setting up event listeners:', error);
-    }
-
-    // Check connection status periodically
-    const intervalId = setInterval(async () => {
-      if (!provider) return;
-
-      try {
-        // Check accounts
-        const accounts = await provider.send("eth_accounts", []);
-        if (accounts.length === 0 && account !== null) {
-          disconnect();
-          return;
-        }
-
-        // Check chain ID
-        const network = await provider.getNetwork();
-        const currentChainId = Number(network.chainId);
-        if (currentChainId !== chainId) {
-          setChainId(currentChainId);
-          const newSigner = await provider.getSigner();
-          setSigner(newSigner);
-        }
-      } catch (error) {
-        console.warn('Error checking connection status:', error);
-      }
-    }, 1000);
-
-    return () => {
-      clearInterval(intervalId);
-      try {
-        // Clean up event listeners
-        rawProvider.removeListener('accountsChanged', handleAccountsChanged);
-        rawProvider.removeListener('chainChanged', handleChainChanged);
-        rawProvider.removeListener('disconnect', handleDisconnect);
-      } catch (error) {
-        console.warn('Error cleaning up event listeners:', error);
-      }
-    };
-  }, [provider, account, activeWallet, disconnect, chainId]);
+  const disconnect = () => {
+    setSigner(null);
+    setChainId(null);
+    setProvider(null);
+    setAccount("");
+    setSelectedWallet(null);
+  }
 
   return {
     account,
     provider,
     signer,
     chainId,
-    isConnecting,
-    activeWallet,
+    selectedWallet,
     connect,
     disconnect,
   };

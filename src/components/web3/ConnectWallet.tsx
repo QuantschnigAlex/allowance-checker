@@ -7,21 +7,17 @@ import {
   CopyOutlined,
 } from "@ant-design/icons";
 import { useMediaQuery } from "react-responsive";
-import { useWeb3Context } from "../../hooks/useWeb3";
 import { shortenAddress } from "../utils/utils";
-import { WalletType } from "../../types/web3";
+import { EIP6963ProviderDetail } from "../../types/web3";
+import { useSyncProviders, useWeb3Context } from "../../hooks/useWeb3";
 
 const { Text } = Typography;
 
-const WALLET_ICONS = {
-  metamask: "/metamask.svg",
-  rabby: "/rabby.svg",
-};
-
 export const ConnectWallet = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
-  const { account, connect, disconnect, isConnecting, activeWallet } = useWeb3Context();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const providers = useSyncProviders()
+  const { account, connect, disconnect, selectedWallet } = useWeb3Context();
 
   const copyAddress = async () => {
     if (account) {
@@ -30,20 +26,13 @@ export const ConnectWallet = () => {
     }
   };
 
-  const handleWalletConnect = async (walletType: WalletType) => {
-    try {
-      // If another wallet is active, disconnect first
-      if (activeWallet && activeWallet !== walletType) {
-        disconnect();
-        // ensure clean state
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+  const handleWalletConnect = async (providerDetail: EIP6963ProviderDetail) => {
+    await connect(providerDetail);
+    setIsModalOpen(false);
+  };
 
-      await connect(walletType);
-      setIsModalOpen(false);
-    } catch (error) {
-      console.error("Connection error:", error);
-    }
+  const handleWalletDisconnect = async () => {
+    disconnect();
   };
 
   const items: MenuProps["items"] = [
@@ -60,18 +49,18 @@ export const ConnectWallet = () => {
       key: "2",
       icon: <DisconnectOutlined />,
       label: "Disconnect",
-      onClick: disconnect,
+      onClick: handleWalletDisconnect,
     },
   ];
 
   const WalletOption = ({
     name,
-    type,
     icon,
+    providerDetail,
   }: {
     name: string;
-    type: WalletType;
     icon: string;
+    providerDetail: EIP6963ProviderDetail;
   }) => (
     <Card
       hoverable
@@ -79,7 +68,7 @@ export const ConnectWallet = () => {
         marginBottom: 16,
         borderRadius: 8,
       }}
-      onClick={() => handleWalletConnect(type)}
+      onClick={() => handleWalletConnect(providerDetail)}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text strong>{name}</Text>
@@ -99,7 +88,7 @@ export const ConnectWallet = () => {
           type="primary"
           icon={<WalletOutlined />}
           onClick={() => setIsModalOpen(true)}
-          loading={isConnecting}
+          loading={false}
         >
           {isMobile ? "Connect" : "Connect Wallet"}
         </Button>
@@ -111,17 +100,21 @@ export const ConnectWallet = () => {
           footer={null}
           width={350}
         >
-          <div style={{ padding: '16px 0' }}>
-            <WalletOption
-              name="MetaMask"
-              type="metamask"
-              icon={WALLET_ICONS.metamask}
-            />
-            <WalletOption
-              name="Rabby"
-              type="rabby"
-              icon={WALLET_ICONS.rabby}
-            />
+
+          <div>
+            {
+              providers.length > 0 ? providers?.map((provider: EIP6963ProviderDetail) => (
+                <WalletOption
+                  name={provider.info.name}
+                  providerDetail={provider}
+                  icon={provider.info.icon}
+                  key={provider.info.uuid}
+                />
+              )) :
+                <div>
+                  there are no Announced Providers
+                </div>
+            }
           </div>
         </Modal>
       </>
@@ -133,12 +126,12 @@ export const ConnectWallet = () => {
       <Button type="default">
         <Space>
           <WalletOutlined />
-          {shortenAddress(account)}
-          {activeWallet && (
+          {shortenAddress(account ?? "")}
+          {selectedWallet && (
             <img
-              src={WALLET_ICONS[activeWallet]}
-              alt={activeWallet}
-              style={{ height: 16, width: 16, marginLeft: 8 }}
+              src={selectedWallet.info.icon}
+              alt={selectedWallet.info.name}
+              style={{ height: 16, width: 16, marginTop: 3 }}
             />
           )}
         </Space>
