@@ -18,10 +18,12 @@ import {
 
 export class AllowanceLogScanner {
   private walletProvider: BrowserProvider;
+  private chainID: Number;
   private apiKey: string;
 
-  constructor(walletProvider: BrowserProvider) {
+  constructor(walletProvider: BrowserProvider, chainID: Number) {
     this.walletProvider = walletProvider;
+    this.chainID = chainID;
     this.apiKey = config.apiKey;
   }
 
@@ -87,17 +89,11 @@ export class AllowanceLogScanner {
     walletAddress: string,
     page: number
   ): Promise<ApprovalLog[]> {
-    const chainId = await this.walletProvider
-      .getNetwork()
-      .catch((error) => {
-        throw new Error("Failed to get network: " + error.message);
-      })
-      .then((network) => Number(network.chainId));
+
 
     const paddedAddress =
       "0x" + walletAddress.toLowerCase().replace("0x", "").padStart(64, "0");
-
-    const url = new URL(`https://api.etherscan.io/v2/api?chainid=${chainId}`);
+    const url = new URL(`https://api.etherscan.io/v2/api?chainid=${this.chainID}`);
     url.searchParams.append("module", "logs");
     url.searchParams.append("action", "getLogs");
     url.searchParams.append("fromBlock", startBlock.toString());
@@ -165,8 +161,6 @@ export class AllowanceLogScanner {
           spenderInfo.spender = this.trimAddress(spenderInfo.spender);
 
           try {
-            const chainID = (await this.walletProvider.getNetwork()).chainId;
-
             const allowance = await getCurrentAllowance(
               tokenAddress,
               walletAddress,
@@ -177,7 +171,7 @@ export class AllowanceLogScanner {
             if (allowance > 0n) {
               const contractSourceCode = await getContractSourceCode(
                 spenderInfo.spender,
-                Number(chainID)
+                Number(this.chainID)
               );
               const spenderName = contractSourceCode?.ContractName;
               const formatted = ethers.formatUnits(

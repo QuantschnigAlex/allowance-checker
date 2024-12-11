@@ -54,7 +54,7 @@ export const AllowanceList: React.FC = () => {
         setLoading(true);
         console.log("Fetching allowances...", account);
         console.log("chainId", chainId);
-        const scanner = new AllowanceLogScanner(provider);
+        const scanner = new AllowanceLogScanner(provider, chainId);
         const allowanceList = await scanner.scanWalletAllowances(account);
         console.log("allowanceList", allowanceList.length);
         // const allowanceList = allowanceInfos;
