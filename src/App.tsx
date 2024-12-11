@@ -1,4 +1,4 @@
-import { ConfigProvider, theme } from "antd";
+import { ConfigProvider, theme, App as AntdApp } from "antd";
 import { MainLayout } from "./components/layout/MainLayout";
 import { Web3Provider } from "./context/Web3Context";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -19,11 +19,13 @@ const AppContent = () => {
             : theme.darkAlgorithm,
       }}
     >
-      <Web3Provider>
-        <MainLayout>
-          <Home />
-        </MainLayout>
-      </Web3Provider>
+      <AntdApp>
+        <Web3Provider>
+          <MainLayout>
+            <Home />
+          </MainLayout>
+        </Web3Provider>
+      </AntdApp>
     </ConfigProvider>
   );
 };

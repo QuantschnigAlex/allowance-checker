@@ -1,86 +1,109 @@
-import { useState, useCallback, useEffect, useContext } from "react";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { message } from "antd";
-import { Web3Context } from "../context/context";
+import { useContext, useEffect, useState, useSyncExternalStore } from "react"
+import { Web3Context } from "../context/context"
+import { BrowserProvider, JsonRpcSigner } from "ethers"
+import { EIP6963AnnounceProviderEvent, EIP6963ProviderDetail } from "../types/web3"
+
+declare global {
+  interface WindowEventMap {
+    "eip6963:announceProvider": CustomEvent
+  }
+}
+
+let providers: EIP6963ProviderDetail[] = []
+export const store = {
+  value: () => providers,
+  subscribe: (callback: () => void) => {
+    function onAnnouncement(event: EIP6963AnnounceProviderEvent) {
+      if (providers.map(p => p.info.uuid).includes(event.detail.info.uuid)) return
+      providers = [...providers, event.detail]
+      callback()
+    }
+    window.addEventListener("eip6963:announceProvider", onAnnouncement);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+
+    return () => window.removeEventListener("eip6963:announceProvider", onAnnouncement)
+  }
+}
+
+export const useSyncProviders = () => useSyncExternalStore(store.subscribe, store.value, store.value)
 
 export function useWeb3() {
-  const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
+  const [selectedWallet, setSelectedWallet] = useState<EIP6963ProviderDetail | null>(null)
   const [chainId, setChainId] = useState<number | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  const connect = useCallback(async () => {
-    if (!window.ethereum) {
-      message.error("Please install MetaMask!");
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-      const provider = new BrowserProvider(window.ethereum);
-      const accounts = await provider.send("eth_requestAccounts", []);
-      const signer = await provider.getSigner();
-      const network = await provider.getNetwork();
-
-      setProvider(provider);
-      setSigner(signer);
-      setAccount(accounts[0]);
-      setChainId(Number(network.chainId));
-    } catch (error: any) {
-      console.log("Connect error:", error);
-      if (error.error.code === -32002) {
-        message.info(
-          "Please check MetaMask and complete the pending connection."
-        );
-      } else {
-        message.error("Failed to connect wallet");
-      }
-    } finally {
-      setIsConnecting(false);
-    }
-  }, []);
-
-  const disconnect = useCallback(() => {
-    setAccount(null);
-    setProvider(null);
-    setSigner(null);
-    setChainId(null);
-  }, []);
+  const [account, setAccount] = useState<string | null>(null);
 
   useEffect(() => {
-    if (window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length === 0) {
-          disconnect();
-        } else if (accounts[0] !== account) {
-          setAccount(accounts[0]);
+    if (selectedWallet?.provider) {
+      let mounted = true;
+
+      const checkNetwork = async () => {
+        try {
+          const chainIdHex = await selectedWallet.provider.request({
+            method: 'eth_chainId'
+          }) as string;
+
+          if (mounted && Number(chainIdHex) !== chainId) {
+            const provider = new BrowserProvider(selectedWallet.provider);
+            const signer = await provider.getSigner();
+
+            setProvider(provider);
+            setChainId(Number(chainIdHex));
+            setSigner(signer);
+          }
+        } catch (error) {
+          console.error('Error checking network:', error);
         }
       };
 
-      const handleChainChanged = () => {
-        window.location.reload();
-      };
-
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-      window.ethereum.on("chainChanged", handleChainChanged);
+      // Check every second
+      const interval = setInterval(checkNetwork, 1000);
 
       return () => {
-        window.ethereum.removeListener(
-          "accountsChanged",
-          handleAccountsChanged
-        );
-        window.ethereum.removeListener("chainChanged", handleChainChanged);
+        mounted = false;
+        clearInterval(interval);
       };
     }
-  }, [account, disconnect]);
+  }, [selectedWallet, chainId]);
+
+  const connect = async (providerDetail: EIP6963ProviderDetail) => {
+    try {
+      const accounts = await providerDetail.provider
+        .request({ method: 'eth_requestAccounts' })
+        .catch(console.error)
+
+      if (accounts?.[0]) {
+        const provider = new BrowserProvider(providerDetail.provider);
+        const network = await provider.getNetwork();
+        const signer = await provider.getSigner();
+
+        setSelectedWallet(providerDetail);
+        setAccount(accounts[0]);
+        setProvider(provider);
+        setChainId(Number(network.chainId));
+        setSigner(signer);
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+      disconnect();
+    }
+  };
+
+  const disconnect = () => {
+    setSigner(null);
+    setChainId(null);
+    setProvider(null);
+    setAccount("");
+    setSelectedWallet(null);
+  }
 
   return {
     account,
     provider,
     signer,
     chainId,
-    isConnecting,
+    selectedWallet,
     connect,
     disconnect,
   };

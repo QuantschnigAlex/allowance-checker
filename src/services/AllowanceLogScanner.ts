@@ -34,6 +34,7 @@ export class AllowanceLogScanner {
     const approvalLogs: ApprovalLog[] = [];
     let page = 1;
     const MAX_RETRIES = 2;
+    console.log("Fetching from block", startBlock, "to block", endBlock);
 
     while (true) {
       console.info(`Fetching transactions for page ${page}`);
@@ -50,17 +51,23 @@ export class AllowanceLogScanner {
             page
           );
 
+          console.log(`Page ${page} fetched ${result.length} logs`);
+
           if (!result || result.length === 0) {
+            console.log("No more logs found");
             return approvalLogs;
           }
 
           approvalLogs.push(...result);
+          console.log("Total logs fetched:", approvalLogs.length);
 
           if (result.length < 1000) {
+            console.log("Less than 1000 logs fetched, stopping");
             return approvalLogs;
           }
           success = true;
         } catch (error: any) {
+          console.log("Error fetching logs:", error.message);
           if (error.message.includes("rate limit")) {
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * retryCount)
