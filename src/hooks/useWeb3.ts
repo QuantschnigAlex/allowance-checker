@@ -1,38 +1,47 @@
-import { useContext, useEffect, useState, useSyncExternalStore } from "react"
-import { Web3Context } from "../context/context"
-import { BrowserProvider, JsonRpcSigner } from "ethers"
-import { EIP6963AnnounceProviderEvent, EIP6963ProviderDetail } from "../types/web3"
+import { useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { Web3Context } from "../context/context";
+import { BrowserProvider, JsonRpcSigner } from "ethers";
+import {
+  EIP6963AnnounceProviderEvent,
+  EIP6963ProviderDetail,
+} from "../types/web3";
+import { message } from "antd";
 
 declare global {
   interface WindowEventMap {
-    "eip6963:announceProvider": CustomEvent
+    "eip6963:announceProvider": CustomEvent;
   }
 }
 
-let providers: EIP6963ProviderDetail[] = []
+let providers: EIP6963ProviderDetail[] = [];
 export const store = {
   value: () => providers,
   subscribe: (callback: () => void) => {
     function onAnnouncement(event: EIP6963AnnounceProviderEvent) {
-      if (providers.map(p => p.info.uuid).includes(event.detail.info.uuid)) return
-      providers = [...providers, event.detail]
-      callback()
+      if (providers.map((p) => p.info.uuid).includes(event.detail.info.uuid))
+        return;
+      providers = [...providers, event.detail];
+      callback();
     }
     window.addEventListener("eip6963:announceProvider", onAnnouncement);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
 
-    return () => window.removeEventListener("eip6963:announceProvider", onAnnouncement)
-  }
-}
+    return () =>
+      window.removeEventListener("eip6963:announceProvider", onAnnouncement);
+  },
+};
 
-export const useSyncProviders = () => useSyncExternalStore(store.subscribe, store.value, store.value)
+export const useSyncProviders = () =>
+  useSyncExternalStore(store.subscribe, store.value, store.value);
 
 export function useWeb3() {
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
   const [signer, setSigner] = useState<JsonRpcSigner | null>(null);
-  const [selectedWallet, setSelectedWallet] = useState<EIP6963ProviderDetail | null>(null)
+  const [selectedWallet, setSelectedWallet] =
+    useState<EIP6963ProviderDetail | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [account, setAccount] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedWallet?.provider) {
@@ -40,9 +49,9 @@ export function useWeb3() {
 
       const checkNetwork = async () => {
         try {
-          const chainIdHex = await selectedWallet.provider.request({
-            method: 'eth_chainId'
-          }) as string;
+          const chainIdHex = (await selectedWallet.provider.request({
+            method: "eth_chainId",
+          })) as string;
 
           if (mounted && Number(chainIdHex) !== chainId) {
             const provider = new BrowserProvider(selectedWallet.provider);
@@ -53,7 +62,7 @@ export function useWeb3() {
             setSigner(signer);
           }
         } catch (error) {
-          console.error('Error checking network:', error);
+          console.error("Error checking network:", error);
         }
       };
 
@@ -69,9 +78,9 @@ export function useWeb3() {
 
   const connect = async (providerDetail: EIP6963ProviderDetail) => {
     try {
-      const accounts = await providerDetail.provider
-        .request({ method: 'eth_requestAccounts' })
-        .catch(console.error)
+      const accounts = await providerDetail.provider.request({
+        method: "eth_requestAccounts",
+      });
 
       if (accounts?.[0]) {
         const provider = new BrowserProvider(providerDetail.provider);
@@ -84,8 +93,9 @@ export function useWeb3() {
         setChainId(Number(network.chainId));
         setSigner(signer);
       }
-    } catch (error) {
-      console.error('Connection error:', error);
+    } catch (error: any) {
+      setConnectionError(error.code);
+      console.error("Connection error:", error.code);
       disconnect();
     }
   };
@@ -96,7 +106,7 @@ export function useWeb3() {
     setProvider(null);
     setAccount("");
     setSelectedWallet(null);
-  }
+  };
 
   return {
     account,
@@ -106,6 +116,7 @@ export function useWeb3() {
     selectedWallet,
     connect,
     disconnect,
+    connectionError,
   };
 }
 

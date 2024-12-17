@@ -1,4 +1,9 @@
-import { BlockTag, BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
+import {
+  BlockTag,
+  BrowserProvider,
+  Eip1193Provider,
+  JsonRpcSigner,
+} from "ethers";
 
 export interface EIP6963ProviderInfo {
   uuid: string;
@@ -7,7 +12,6 @@ export interface EIP6963ProviderInfo {
   rdns: string;
 }
 
-
 export interface EIP6963ProviderDetail {
   info: EIP6963ProviderInfo;
   provider: Eip1193Provider;
@@ -15,10 +19,10 @@ export interface EIP6963ProviderDetail {
 
 export type EIP6963AnnounceProviderEvent = {
   detail: {
-    info: EIP6963ProviderInfo,
-    provider: Eip1193Provider,
-  }
-}
+    info: EIP6963ProviderInfo;
+    provider: Eip1193Provider;
+  };
+};
 export interface EIP6963RequestProviderEvent extends Event {
   type: "eip6963:requestProvider";
 }
@@ -69,9 +73,10 @@ export interface Web3ContextData {
   selectedWallet: EIP6963ProviderDetail | null;
   connect: (providerDetail: EIP6963ProviderDetail) => Promise<void>;
   disconnect: () => void;
+  connectionError: string | null;
 }
 
-export type WalletType = 'metamask' | 'rabby';
+export type WalletType = "metamask" | "rabby";
 
 export type TokenApproval = {
   [tokenAddress: string]: Set<TokenApprovalInfo>;
