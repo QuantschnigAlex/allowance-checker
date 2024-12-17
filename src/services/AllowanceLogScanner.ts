@@ -18,10 +18,10 @@ import {
 
 export class AllowanceLogScanner {
   private walletProvider: BrowserProvider;
-  private chainID: Number;
+  private chainID: number;
   private apiKey: string;
 
-  constructor(walletProvider: BrowserProvider, chainID: Number) {
+  constructor(walletProvider: BrowserProvider, chainID: number) {
     this.walletProvider = walletProvider;
     this.chainID = chainID;
     this.apiKey = config.apiKey;
@@ -89,11 +89,11 @@ export class AllowanceLogScanner {
     walletAddress: string,
     page: number
   ): Promise<ApprovalLog[]> {
-
-
     const paddedAddress =
       "0x" + walletAddress.toLowerCase().replace("0x", "").padStart(64, "0");
-    const url = new URL(`https://api.etherscan.io/v2/api?chainid=${this.chainID}`);
+    const url = new URL(
+      `https://api.etherscan.io/v2/api?chainid=${this.chainID}`
+    );
     url.searchParams.append("module", "logs");
     url.searchParams.append("action", "getLogs");
     url.searchParams.append("fromBlock", startBlock.toString());

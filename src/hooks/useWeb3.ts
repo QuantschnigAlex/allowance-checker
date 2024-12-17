@@ -5,7 +5,6 @@ import {
   EIP6963AnnounceProviderEvent,
   EIP6963ProviderDetail,
 } from "../types/web3";
-import { message } from "antd";
 
 declare global {
   interface WindowEventMap {
