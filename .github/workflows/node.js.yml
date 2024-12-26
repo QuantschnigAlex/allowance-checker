@@ -88,6 +88,7 @@ jobs:
           echo "EC2_IP=$(terraform output -raw instance_ip)" >> $GITHUB_ENV
       - name: Deploy to EC2
         run: |
-          echo "${{ secrets.SSH_KEY }}" > key.pem
+          echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
           chmod 400 key.pem
+          chmod +x deploy.sh
           ./deploy.sh
