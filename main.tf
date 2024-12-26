@@ -19,7 +19,7 @@ resource "aws_security_group" "allow_ssh" {
 }
 
 resource "aws_instance" "app_server" {
-  ami           = "ami-0eddb4a4e7d846d6f"
+  ami           = "ami-071f0796b00a3a89d"
   instance_type = "t2.micro"
   key_name      = "allowance_checker"
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
