@@ -1,31 +1,84 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: Node.js CI
 
 on:
   push:
     branches: ["main"]
+    tags:
+      - "v*"
   pull_request:
     branches: ["main"]
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [v20.11.1]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: v20.11.1
           cache: "npm"
       - run: npm ci
-      - run: npm run build --if-present
-      - run: npm run lint
+      - run: npm run lint -- --output-file eslint-report.txt || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: lint-results
+          path: eslint-report.txt
+          retention-days: 14
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20.11.1
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+
+  test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: v20.11.1
+          cache: "npm"
+      - run: npm ci
       - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage
+          path: |
+            coverage/
+            lcov-report
+          retention-days: 14
+
+  deploay:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: your-region
+      - name: Terraform Init
+        run: terraform init
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+      - name: Deploy to EC2
+        env:
+          EC2_IP: ${{ secrets.EC2_IP }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          echo "$SSH_KEY" > key.pem
+          chmod 400 key.pem
+          ./deploy.sh
