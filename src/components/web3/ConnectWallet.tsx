@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Button, Dropdown, Space, message, Modal, Card, Typography } from "antd";
+import {
+  Button,
+  Dropdown,
+  Space,
+  message,
+  Modal,
+  Card,
+  Typography,
+} from "antd";
 import type { MenuProps } from "antd";
 import {
   WalletOutlined,
@@ -13,10 +21,10 @@ import { useSyncProviders, useWeb3Context } from "../../hooks/useWeb3";
 
 const { Text } = Typography;
 
-export const ConnectWallet = () => {
+export const ConnectWallet: React.FC = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const providers = useSyncProviders()
+  const providers = useSyncProviders();
   const { account, connect, disconnect, selectedWallet } = useWeb3Context();
 
   const copyAddress = async () => {
@@ -70,7 +78,13 @@ export const ConnectWallet = () => {
       }}
       onClick={() => handleWalletConnect(providerDetail)}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Text strong>{name}</Text>
         <img
           src={icon}
@@ -100,21 +114,22 @@ export const ConnectWallet = () => {
           footer={null}
           width={350}
         >
-
           <div>
-            {
-              providers.length > 0 ? providers?.map((provider: EIP6963ProviderDetail) => (
+            {providers.length > 0 ? (
+              providers?.map((provider: EIP6963ProviderDetail) => (
                 <WalletOption
                   name={provider.info.name}
                   providerDetail={provider}
                   icon={provider.info.icon}
                   key={provider.info.uuid}
                 />
-              )) :
-                <div>
-                  there are no Announced Providers
-                </div>
-            }
+              ))
+            ) : (
+              <div>
+                <div>No Wallets found!</div>
+                <div>Install a BrowserWallet e.g MetaMask</div>
+              </div>
+            )}
           </div>
         </Modal>
       </>

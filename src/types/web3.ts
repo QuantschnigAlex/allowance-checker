@@ -1,4 +1,9 @@
-import { BlockTag, BrowserProvider, Eip1193Provider, JsonRpcSigner } from "ethers";
+import {
+  BlockTag,
+  BrowserProvider,
+  Eip1193Provider,
+  JsonRpcSigner,
+} from "ethers";
 
 export interface EIP6963ProviderInfo {
   uuid: string;
@@ -7,7 +12,6 @@ export interface EIP6963ProviderInfo {
   rdns: string;
 }
 
-
 export interface EIP6963ProviderDetail {
   info: EIP6963ProviderInfo;
   provider: Eip1193Provider;
@@ -15,10 +19,10 @@ export interface EIP6963ProviderDetail {
 
 export type EIP6963AnnounceProviderEvent = {
   detail: {
-    info: EIP6963ProviderInfo,
-    provider: Eip1193Provider,
-  }
-}
+    info: EIP6963ProviderInfo;
+    provider: Eip1193Provider;
+  };
+};
 export interface EIP6963RequestProviderEvent extends Event {
   type: "eip6963:requestProvider";
 }
@@ -71,8 +75,6 @@ export interface Web3ContextData {
   disconnect: () => void;
 }
 
-export type WalletType = 'metamask' | 'rabby';
-
 export type TokenApproval = {
   [tokenAddress: string]: Set<TokenApprovalInfo>;
 };
@@ -80,6 +82,15 @@ export type TokenApproval = {
 export interface TokenApprovalInfo {
   spender: string;
   txHash: string;
+}
+
+export enum WalletError {
+  UserRejected = "User rejected the connection request",
+  UnsupportedChain = "This network is not supported",
+  AlreadyProcessing = "Request already processing. Check your wallet!",
+  Unauthorized = "Wallet connection unauthorized",
+  Disconnected = "Wallet disconnected",
+  ChainDisconnected = "Chain disconnected",
 }
 
 export interface EtherscanTx {
