@@ -70,6 +70,11 @@ export class AllowanceLogScanner {
           success = true;
         } catch (error: any) {
           console.log("Error fetching logs:", error.message);
+
+          if (error.message == "No records found") {
+            return approvalLogs;
+          }
+
           if (error.message.includes("rate limit")) {
             await new Promise((resolve) =>
               setTimeout(resolve, 1000 * retryCount)
@@ -108,7 +113,7 @@ export class AllowanceLogScanner {
     const json = await response.json();
 
     if (json.status === "0") {
-      throw new Error(json.result);
+      throw new Error(json.message);
     }
 
     return json.result.map((log: any) => ({

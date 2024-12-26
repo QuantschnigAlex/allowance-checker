@@ -73,10 +73,7 @@ export interface Web3ContextData {
   selectedWallet: EIP6963ProviderDetail | null;
   connect: (providerDetail: EIP6963ProviderDetail) => Promise<void>;
   disconnect: () => void;
-  connectionError: string | null;
 }
-
-export type WalletType = "metamask" | "rabby";
 
 export type TokenApproval = {
   [tokenAddress: string]: Set<TokenApprovalInfo>;
@@ -85,6 +82,15 @@ export type TokenApproval = {
 export interface TokenApprovalInfo {
   spender: string;
   txHash: string;
+}
+
+export enum WalletError {
+  UserRejected = "User rejected the connection request",
+  UnsupportedChain = "This network is not supported",
+  AlreadyProcessing = "Request already processing. Check your wallet!",
+  Unauthorized = "Wallet connection unauthorized",
+  Disconnected = "Wallet disconnected",
+  ChainDisconnected = "Chain disconnected",
 }
 
 export interface EtherscanTx {

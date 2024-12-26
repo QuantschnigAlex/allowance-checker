@@ -4,7 +4,9 @@ import { BrowserProvider, JsonRpcSigner } from "ethers";
 import {
   EIP6963AnnounceProviderEvent,
   EIP6963ProviderDetail,
+  WalletError,
 } from "../types/web3";
+import { message } from "antd";
 
 declare global {
   interface WindowEventMap {
@@ -43,6 +45,12 @@ export function useWeb3() {
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (connectionError) {
+      message.error(connectionError);
+    }
+  }, [connectionError]);
+
+  useEffect(() => {
     if (selectedWallet?.provider) {
       let mounted = true;
 
@@ -76,6 +84,7 @@ export function useWeb3() {
   }, [selectedWallet, chainId]);
 
   const connect = async (providerDetail: EIP6963ProviderDetail) => {
+    setConnectionError(null);
     try {
       const accounts = await providerDetail.provider.request({
         method: "eth_requestAccounts",
@@ -93,9 +102,29 @@ export function useWeb3() {
         setSigner(signer);
       }
     } catch (error: any) {
-      setConnectionError(error.code);
+      const errorMessage = walletError(error.code);
+      setConnectionError(errorMessage);
       console.error("Connection error:", error.code);
       disconnect();
+    }
+  };
+
+  const walletError = (error: any) => {
+    switch (error) {
+      case 4001:
+        return WalletError.UserRejected;
+      case 4902:
+        return WalletError.UnsupportedChain;
+      case -32002:
+        return WalletError.AlreadyProcessing;
+      case 4100:
+        return WalletError.Unauthorized;
+      case 4900:
+        return WalletError.Disconnected;
+      case 4901:
+        return WalletError.ChainDisconnected;
+      default:
+        return error.message || "Unknown error occurred";
     }
   };
 
@@ -115,7 +144,6 @@ export function useWeb3() {
     selectedWallet,
     connect,
     disconnect,
-    connectionError,
   };
 }
 

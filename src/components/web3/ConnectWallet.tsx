@@ -21,18 +21,11 @@ import { useSyncProviders, useWeb3Context } from "../../hooks/useWeb3";
 
 const { Text } = Typography;
 
-export const ConnectWallet = () => {
+export const ConnectWallet: React.FC = () => {
   const isMobile = useMediaQuery({ maxWidth: 600 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const providers = useSyncProviders();
-  const { account, connect, disconnect, selectedWallet, connectionError } =
-    useWeb3Context();
-
-  console.log("Providers", providers);
-
-  if (connectionError != null) {
-    message.error(connectionError);
-  }
+  const { account, connect, disconnect, selectedWallet } = useWeb3Context();
 
   const copyAddress = async () => {
     if (account) {
