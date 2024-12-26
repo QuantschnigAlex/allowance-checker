@@ -49,7 +49,13 @@ export const AllowanceList: React.FC = () => {
   }
 
   useEffect(() => {
-    if (account && provider && signer && chainId) {
+    if (
+      account &&
+      provider &&
+      signer &&
+      chainId &&
+      SUPORTED_CHAINS.includes(chainId)
+    ) {
       const fetchAllowances = async () => {
         setLoading(true);
         console.log("Fetching allowances...", account);
