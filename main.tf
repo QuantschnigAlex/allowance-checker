@@ -15,11 +15,11 @@ resource "aws_instance" "app_server" {
               
               # Update system
               echo "Updating system..."
-              dnf update -y
+              yum update -y
               
               # Install Docker
               echo "Installing Docker..."
-              dnf install -y docker
+              yum install -y docker
               
               # Start and enable Docker
               echo "Starting Docker service..."
