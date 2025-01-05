@@ -21,6 +21,8 @@ resource "aws_instance" "app_server" {
               # Create directory for app
               mkdir -p /app
               chown -R ec2-user:ec2-user /app
+              # Create a flag file when done
+              touch /tmp/user_data_complete
               EOF
 
   tags = {

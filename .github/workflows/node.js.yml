@@ -110,12 +110,25 @@ jobs:
           echo "$SSH_KEY" | base64 -d > key.pem 
           chmod 400 key.pem
 
-          # Wait briefly for instance to be ready
-          sleep 90
+          echo "Waiting for instance setup..."
+          for i in {1..30}; do
+            if ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '[ -f /tmp/user_data_complete ]'; then
+              echo "Instance setup complete!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Timeout waiting for instance setup"
+              exit 1
+            fi
+            echo "Waiting for instance setup... attempt $i/30"
+            sleep 10
+          done
 
-          echo "Attempting to connect as ${EC2_USER}@${EC2_IP}"
-          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} 'whoami && docker --version' || exit 1
+          # Verify Docker installation
+          echo "Verifying Docker installation..."
+          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} 'docker --version' || exit 1
 
+          echo "Copying Docker image..."
           scp -i key.pem -o StrictHostKeyChecking=no app.tar ${EC2_USER}@${EC2_IP}:/app/
 
           ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '
@@ -125,7 +138,6 @@ jobs:
             docker stop app || true
             docker rm app || true
             docker run -d --name app -p 80:80 --restart unless-stopped '"$DOCKER_IMAGE"'
-
             sleep 5
             if ! docker ps | grep -q app; then
               echo "Container failed to start"
@@ -133,5 +145,4 @@ jobs:
               exit 1
             fi
           '
-
           echo "Deployment completed successfully!"
