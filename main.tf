@@ -31,8 +31,8 @@ resource "aws_instance" "app_server" {
 }
 
 resource "aws_security_group" "app_server" {
-  name        = "app_server"
-  description = "Allow inbound traffic"
+   name        = "app_server_${formatdate("YYYYMMDD_HHmmss", timestamp())}"  
+   description = "Allow inbound traffic"
 
   ingress {
     description = "HTTP"
