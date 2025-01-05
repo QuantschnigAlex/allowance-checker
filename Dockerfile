@@ -1,13 +1,4 @@
-FROM node:latest
-
-WORKDIR /usr/src/app
-
-COPY package*.json ./
-
-RUN npm install
-
-COPY . .
-
-EXPOSE 5173 
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+FROM nginx:alpine
+COPY dist/ /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
