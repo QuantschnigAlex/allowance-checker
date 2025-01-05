@@ -10,18 +10,33 @@ resource "aws_instance" "app_server" {
   
   user_data = <<-EOF
               #!/bin/bash
+              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              echo "Starting user data script..."
+              
               # Update system
+              echo "Updating system..."
               dnf update -y
+              
               # Install Docker
-              dnf install docker -y
+              echo "Installing Docker..."
+              dnf install -y docker
+              
+              # Start and enable Docker
+              echo "Starting Docker service..."
               systemctl start docker
               systemctl enable docker
+              
               # Add ec2-user to docker group
+              echo "Configuring docker group..."
               usermod -aG docker ec2-user
+              
               # Create directory for app
+              echo "Creating app directory..."
               mkdir -p /app
               chown -R ec2-user:ec2-user /app
+              
               # Create a flag file when done
+              echo "Setup complete"
               touch /tmp/user_data_complete
               EOF
 
