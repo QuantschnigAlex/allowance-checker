@@ -118,7 +118,7 @@ jobs:
               echo "Timeout waiting for instance setup"
               exit 1
             fi
-            echo "Waiting for instance setup
+            echo "Waiting for instance setup"
             sleep 10
           done
 
