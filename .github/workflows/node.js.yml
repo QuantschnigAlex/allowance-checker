@@ -104,7 +104,8 @@ jobs:
         run: |
           echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
           chmod 600 key.pem
-          ls -la key.pem  # Debug: verify key file
+          echo "Testing direct SSH connection..."
+          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@${{ steps.terraform.outputs.instance_ip }} 'echo SSH connection successful'
 
       - name: Deploy with Ansible
         uses: dawidd6/action-ansible-playbook@v2
