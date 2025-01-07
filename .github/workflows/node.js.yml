@@ -92,36 +92,54 @@ jobs:
         env:
           DOCKER_IMAGE: allowance-checker
         run: |
+          # Build Docker image
           docker build -t $DOCKER_IMAGE .
           docker save $DOCKER_IMAGE > app.tar
 
-      - name: Get EC2 IP
-        id: terraform
+      - name: Deploy to EC2
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          EC2_USER: ec2-user
+          DOCKER_IMAGE: allowance-checker
         run: |
-          echo "instance_ip=$(terraform output -raw instance_ip)" >> $GITHUB_OUTPUT
+          EC2_IP=$(terraform output -raw instance_ip)
+          echo "Instance IP: ${EC2_IP}"
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ steps.terraform.outputs.instance_ip }} >> ~/.ssh/known_hosts
+          echo "$SSH_KEY" | base64 -d > key.pem 
+          chmod 400 key.pem
 
-      - name: Create inventory file
-        run: |
-          echo "[app_servers]" > .ansible_inventory
-          echo "${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user ansible_ssh_private_key_file=~/.ssh/id_rsa" >> .ansible_inventory
-          cat .ansible_inventory
+          echo "Waiting for instance setup..."
+          for i in {1..30}; do
+            if ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '[ -f /tmp/user_data_complete ]'; then
+              echo "Instance setup complete!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Timeout waiting for instance setup"
+              exit 1
+            fi
+            echo "Waiting for instance setup"
+            sleep 10
+          done
 
-      - name: Deploy with Ansible
-        uses: dawidd6/action-ansible-playbook@v2
-        with:
-          playbook: ansible/site.yml
-          directory: ./
-          key: ${{ secrets.SSH_KEY }}
-          inventory: |
-            [app_servers]
-            ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user
-          options: |
-            --verbose
-            -e "vite_apikey=${{ secrets.VITE_APIKEY }}"
+          echo "Verifying Docker installation..."
+          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} 'docker --version' || exit 1
+
+          echo "Copying Docker image..."
+          scp -i key.pem -o StrictHostKeyChecking=no app.tar ${EC2_USER}@${EC2_IP}:/app/
+
+          ssh -i key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_IP} '
+            docker system prune -af
+            cd /app
+            docker load < app.tar
+            docker stop app || true
+            docker rm app || true
+            docker run -d --name app -p 80:80 --restart unless-stopped '"$DOCKER_IMAGE"'
+            sleep 5
+            if ! docker ps | grep -q app; then
+              echo "Container failed to start"
+              docker logs app
+              exit 1
+            fi
+          '
+          echo "Deployment completed successfully!"

@@ -8,6 +8,19 @@ resource "aws_instance" "app_server" {
   key_name      = "allowance_checker"
   vpc_security_group_ids = [aws_security_group.app_server.id]
   
+  user_data = <<-EOF
+              #!/bin/bash
+              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+              yum update -y
+              yum install -y docker
+              systemctl start docker
+              systemctl enable docker
+              usermod -aG docker ec2-user
+              mkdir -p /app
+              chown -R ec2-user:ec2-user /app
+              touch /tmp/user_data_complete
+              EOF
+
   tags = {
     Name = "AppServer"
   }
