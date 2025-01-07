@@ -112,10 +112,10 @@ jobs:
         with:
           playbook: ansible/site.yml
           directory: ./
-          private_key: ~/.ssh/id_rsa
+          key: ${{ secrets.SSH_KEY }}
           inventory: |
             [app_servers]
-            ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user
+            ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user ansible_python_interpreter=/usr/bin/python3
           options: |
             --verbose
             -e "vite_apikey=${{ secrets.VITE_APIKEY }}"
