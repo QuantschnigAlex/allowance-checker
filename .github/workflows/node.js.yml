@@ -100,11 +100,11 @@ jobs:
         run: |
           echo "instance_ip=$(terraform output -raw instance_ip)" >> $GITHUB_OUTPUT
 
-          - name: Prepare SSH key
-          run: |
-            echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
-            chmod 600 key.pem
-            ls -la key.pem  # Debug: verify key file
+      - name: Prepare SSH key
+        run: |
+          echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
+          chmod 600 key.pem
+          ls -la key.pem  # Debug: verify key file
 
       - name: Deploy with Ansible
         uses: dawidd6/action-ansible-playbook@v2
