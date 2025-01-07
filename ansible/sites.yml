@@ -1,0 +1,8 @@
+---
+- hosts: app_servers
+  become: yes
+  vars:
+    vite_apikey: "{{ lookup('env', 'VITE_APIKEY') }}"
+  roles:
+    - docker
+    - app
