@@ -100,26 +100,22 @@ jobs:
         run: |
           echo "instance_ip=$(terraform output -raw instance_ip)" >> $GITHUB_OUTPUT
 
-      - name: Prepare SSH key
+      - name: Prepare SSH key and known hosts
         run: |
-          echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
-          chmod 600 key.pem
-          echo "Testing direct SSH connection..."
-          ssh -i key.pem -o StrictHostKeyChecking=no ec2-user@${{ steps.terraform.outputs.instance_ip }} 'echo SSH connection successful'
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_KEY }}" | base64 -d > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ steps.terraform.outputs.instance_ip }} >> ~/.ssh/known_hosts
 
       - name: Deploy with Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
           playbook: ansible/site.yml
           directory: ./
-          key: ${{ secrets.SSH_KEY }}
+          private_key: ~/.ssh/id_rsa
           inventory: |
             [app_servers]
             ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user
-          configuration: |
-            [defaults]
-            host_key_checking = False
-            interpreter_python = auto
           options: |
             --verbose
             -e "vite_apikey=${{ secrets.VITE_APIKEY }}"
