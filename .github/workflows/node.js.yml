@@ -112,14 +112,14 @@ jobs:
         with:
           playbook: ansible/site.yml
           directory: ./
-          key_file: key.pem
+          key: ${{ secrets.SSH_KEY }}
           inventory: |
             [app_servers]
             ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user
           configuration: |
             [defaults]
             host_key_checking = False
-            private_key_file = key.pem
+            interpreter_python = auto
           options: |
             --verbose
             -e "vite_apikey=${{ secrets.VITE_APIKEY }}"
