@@ -100,6 +100,12 @@ jobs:
         run: |
           echo "instance_ip=$(terraform output -raw instance_ip)" >> $GITHUB_OUTPUT
 
+          - name: Prepare SSH key
+          run: |
+            echo "${{ secrets.SSH_KEY }}" | base64 -d > key.pem
+            chmod 600 key.pem
+            ls -la key.pem  # Debug: verify key file
+
       - name: Deploy with Ansible
         uses: dawidd6/action-ansible-playbook@v2
         with:
@@ -108,7 +114,10 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           inventory: |
             [app_servers]
-            ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user
+            ${{ steps.terraform.outputs.instance_ip }} ansible_user=ec2-user ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+          configuration: |
+            [defaults]
+            host_key_checking = False
           options: |
             --verbose
             -e "vite_apikey=${{ secrets.VITE_APIKEY }}"
