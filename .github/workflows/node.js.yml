@@ -143,3 +143,17 @@ jobs:
             fi
           '
           echo "Deployment completed successfully!"
+
+      - name: Package Release Files
+        run: |
+          tar -czf dist.tar.gz dist/
+          zip -r dist.zip dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            dist.tar.gz
+            dist.zip
+          generate_release_notes: true
